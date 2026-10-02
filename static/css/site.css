@@ -287,7 +287,7 @@ main { display: block; padding-top: 6.5rem; }
   transition: background-color 0.4s var(--ease), border-color 0.4s var(--ease), padding 0.4s var(--ease);
 }
 /* Once the page scrolls, the bar firms up so text never shows through it. */
-.is-scrolled .nav { background: color-mix(in srgb, var(--bg) 84%, transparent); border-color: var(--line-strong); }
+.is-scrolled .nav { background: color-mix(in srgb, var(--bg) 90%, transparent); border-color: var(--line-strong); }
 :root[data-contrast="high"] .nav { background: var(--bg); }
 
 .brand { display: inline-flex; align-items: center; gap: 0.65rem; font-family: var(--font-display);
@@ -606,6 +606,7 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 .fact:first-child { border-left: 0; }
 .fact dt { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .fact dd { margin: 0; font-weight: 700; font-size: 1.02rem; }
+.fact dd.mono { font-size: 0.9rem; white-space: nowrap; }  /* a receipt code never breaks at its hyphens */
 
 .checks { display: grid; gap: 0.6rem; }
 .check { display: grid; grid-template-columns: auto 1fr; gap: 0.9rem; padding: 1rem 1.15rem; align-items: start;
@@ -822,13 +823,13 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 /* A still marquee shows a centred, wrapped list instead of a frozen strip. */
 :root[data-motion="reduce"] .marquee { mask-image: none; -webkit-mask-image: none; }
 :root[data-motion="reduce"] .marquee__track { width: auto; justify-content: center; }
-:root[data-motion="reduce"] .marquee__list { flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
+:root[data-motion="reduce"] .marquee__list { flex: 1 1 100%; flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
 :root[data-motion="reduce"] .marquee__list[aria-hidden="true"],
 :root[data-motion="reduce"] .marquee__repeat { display: none; }
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion="full"]) .marquee { mask-image: none; -webkit-mask-image: none; }
   :root:not([data-motion="full"]) .marquee__track { width: auto; justify-content: center; }
-  :root:not([data-motion="full"]) .marquee__list { flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
+  :root:not([data-motion="full"]) .marquee__list { flex: 1 1 100%; flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
   :root:not([data-motion="full"]) .marquee__list[aria-hidden="true"],
   :root:not([data-motion="full"]) .marquee__repeat { display: none; }
 }
