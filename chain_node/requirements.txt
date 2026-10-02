@@ -1,0 +1,5 @@
+# Only what the blockchain node needs, for running it on its own machine.
+fastapi>=0.115
+uvicorn>=0.34
+cryptography>=44.0
+httpx>=0.28

@@ -1,0 +1,28 @@
+# Ledgerfolio: everything needed to run the Django site, the blockchain node,
+# and the AI assistant on one machine.
+#
+#   pip install -r requirements.txt
+#
+# The extra index gives the small CPU-only PyTorch build (no CUDA download).
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# --- Django site (tracker + showcase + ledger client) ---
+Django>=5.2,<5.3
+djangorestframework>=3.16
+django-environ>=0.12
+mysqlclient>=2.2.7
+Pillow>=11.0
+reportlab>=4.2
+qrcode>=8.0
+httpx>=0.28
+
+# --- Blockchain node (chain_node/, also listed in chain_node/requirements.txt) ---
+fastapi>=0.115
+uvicorn>=0.34
+cryptography>=44.0
+
+# --- AI assistant (ai/) ---
+torch>=2.5
+
+# --- Production server (Linux VPS only) ---
+gunicorn>=23.0; sys_platform != "win32"

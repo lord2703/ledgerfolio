@@ -1,0 +1,28 @@
+# Secrets and local config: never commit
+.env
+*.pem
+*.key
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Django runtime data
+/media/
+/private_media/
+/staticfiles/
+/var/
+
+# Blockchain node data (back this up together with MySQL, but not in git)
+/chain_data/
+
+# AI: commit the dataset and scripts, deploy the trained weights separately
+/ai/artifacts/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
