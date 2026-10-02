@@ -48,7 +48,9 @@ def money(amount) -> str:
 
 
 def _qr_image(data: str) -> ImageReader:
-    code = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=0)
+    # border=4 is the quiet zone the QR standard asks for: without it phone
+    # cameras read the code less reliably.
+    code = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
     code.add_data(data)
     code.make(fit=True)
     buffer = io.BytesIO()
@@ -64,12 +66,28 @@ def _fit(text: str, font: str, size: float, max_width: float) -> float:
     return size
 
 
-def _spaced(pdf, x, y, text, font, size, spacing=1.6):
+def _spaced_width(text: str, font: str, size: float, spacing: float = 1.6) -> float:
+    return stringWidth(text, font, size) + spacing * len(text)
+
+
+def _spaced(pdf, x, y, text, font, size, spacing=1.6, align="left"):
+    """Letter-spaced small caps. Character spacing is part of the PDF graphics
+    state and would leak into every later line, so it is drawn inside a
+    saved state that is restored straight after."""
+    if align == "right":
+        x -= _spaced_width(text, font, size, spacing)
+    pdf.saveState()
     text_object = pdf.beginText(x, y)
     text_object.setFont(font, size)
     text_object.setCharSpace(spacing)
     text_object.textOut(text)
     pdf.drawText(text_object)
+    pdf.restoreState()
+
+
+def _long_date(value) -> str:
+    """'July 4, 2026': no zero-padded day."""
+    return f"{value:%B} {value.day}, {value:%Y}"
 
 
 def build_receipt_pdf(receipt) -> bytes:
@@ -100,8 +118,7 @@ def build_receipt_pdf(receipt) -> bytes:
     pdf.drawString(margin, height - 21 * mm, f"{settings.OWNER_NAME}  ·  {settings.OWNER_TITLE}")
 
     pdf.setFillColor(HexColor("#FFFFFF"))
-    title_width = stringWidth(labels["title"], "Helvetica-Bold", 9) + 1.6 * len(labels["title"])
-    _spaced(pdf, width - margin - title_width, height - 14 * mm, labels["title"], "Helvetica-Bold", 9)
+    _spaced(pdf, width - margin, height - 14 * mm, labels["title"], "Helvetica-Bold", 9, align="right")
     pdf.setFillColor(GOLD_LIGHT)
     pdf.setFont("Courier-Bold", 12)
     pdf.drawRightString(width - margin, height - 21 * mm, receipt.receipt_number)
@@ -110,9 +127,7 @@ def build_receipt_pdf(receipt) -> bytes:
     y = height - band - 15 * mm
     pdf.setFillColor(MUTED)
     _spaced(pdf, margin, y, labels["party"], "Helvetica", 7)
-    issued_label = "ISSUED"
-    issued_width = stringWidth(issued_label, "Helvetica", 7) + 1.6 * len(issued_label)
-    _spaced(pdf, width - margin - issued_width, y, issued_label, "Helvetica", 7)
+    _spaced(pdf, width - margin, y, "ISSUED", "Helvetica", 7, align="right")
 
     y -= 7 * mm
     pdf.setFillColor(TEXT)
@@ -120,14 +135,13 @@ def build_receipt_pdf(receipt) -> bytes:
     pdf.setFont("Helvetica-Bold", name_size)
     pdf.drawString(margin, y, receipt.client_name)
     pdf.setFont("Helvetica", 10)
-    issued = timezone.localtime(receipt.issued_at)
-    pdf.drawRightString(width - margin, y, issued.strftime("%B %d, %Y"))
+    pdf.drawRightString(width - margin, y, _long_date(timezone.localtime(receipt.issued_at)))
 
     # --- Detail rows ------------------------------------------------------
     y -= 9 * mm
     rows = [
         ("System", receipt.system_name),
-        (labels["date"], receipt.payment_date.strftime("%B %d, %Y")),
+        (labels["date"], _long_date(receipt.payment_date)),
         ("Payment method", receipt.get_payment_method_display()),
     ]
     pdf.setStrokeColor(RULE)
@@ -169,9 +183,10 @@ def build_receipt_pdf(receipt) -> bytes:
     # --- Verification block -------------------------------------------------
     qr_size = 30 * mm
     y -= 8 * mm + qr_size
+    qr_box = qr_size + 4 * mm
     pdf.setFillColor(HexColor("#FFFFFF"))
-    pdf.roundRect(margin, y - 2 * mm, qr_size + 4 * mm, qr_size + 4 * mm, 2 * mm, stroke=1, fill=1)
-    pdf.drawImage(_qr_image(receipt.verify_url), margin + 2 * mm, y, qr_size, qr_size)
+    pdf.roundRect(margin, y - 2 * mm, qr_box, qr_box, 2 * mm, stroke=1, fill=1)
+    pdf.drawImage(_qr_image(receipt.verify_url), margin, y - 2 * mm, qr_box, qr_box)
 
     text_x = margin + qr_size + 9 * mm
     text_width = width - margin - text_x
