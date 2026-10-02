@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ system.name }} &middot; {{ site_name }}{% endblock %}
+{% block description %}{{ system.tagline|default:system.purpose|truncatechars:155 }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="{% url 'showcase:system_list' %}">Systems</a>
+      <span aria-hidden="true">/</span>
+      <span>{{ system.year }}</span>
+    </nav>
+    <h1 class="page-title">{{ system.name }}</h1>
+    {% if system.tagline %}<p class="lede">{{ system.tagline }}</p>{% endif %}
+    {% if system.stack %}
+      <ul class="chips" aria-label="Tech stack">
+        {% for tech in system.stack %}
+          <li><a class="chip" href="{% url 'showcase:system_list' %}?tech={{ tech|urlencode }}">{{ tech }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </header>
+
+  <div class="detail">
+    <div class="detail__body">
+      {% if system.purpose %}
+        <section class="reveal" aria-labelledby="purpose-title">
+          <h2 class="block-title" id="purpose-title">Purpose</h2>
+          <p class="prose">{{ system.purpose }}</p>
+        </section>
+      {% endif %}
+
+      {% if system.objectives %}
+        <section class="reveal" aria-labelledby="objectives-title">
+          <h2 class="block-title" id="objectives-title">Objectives</h2>
+          <ol class="objectives">
+            {% for objective in system.objectives %}<li>{{ objective }}</li>{% endfor %}
+          </ol>
+        </section>
+      {% endif %}
+
+      {% if system.screenshots %}
+        <section class="reveal" aria-labelledby="shots-title">
+          <h2 class="block-title" id="shots-title">Screenshots</h2>
+          <div class="shots">
+            {% for shot in system.screenshots %}
+              <button class="shot" type="button" data-full="{{ shot.url }}" data-caption="{{ shot.caption }}"
+                      aria-label="Enlarge screenshot{% if shot.caption %}: {{ shot.caption }}{% endif %}">
+                <img src="{{ shot.url }}" alt="{{ shot.caption|default:'Screenshot of the system' }}" loading="lazy">
+                {% if shot.caption %}<span>{{ shot.caption }}</span>{% endif %}
+              </button>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if not system.purpose and not system.objectives and not system.screenshots %}
+        <p class="prose">More details about this system are being written up.</p>
+      {% endif %}
+
+      <section class="note reveal">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg>
+        <p><strong>Want something like this?</strong> Tell the assistant what you need and I'll get back to you.
+          <a href="#chat" data-chat-open data-chat-say="I want a system built" style="color:var(--accent);font-weight:700">Start an inquiry</a></p>
+      </section>
+    </div>
+
+    <div class="panel detail__stage" style="view-transition-name: cover-{{ system.slug }}">
+      <canvas data-scene="preview" data-shape="{{ system.preview_style }}" aria-hidden="true"></canvas>
+      <svg class="stage-fallback" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+        <path d="M100 20 169 60v80l-69 40-69-40V60z"/>
+        <circle cx="100" cy="100" r="92" stroke-dasharray="2 8"/>
+      </svg>
+      <span class="detail__hint" aria-hidden="true">3D preview &middot; drag to rotate</span>
+    </div>
+  </div>
+
+  {% if others %}
+    <section class="section" aria-labelledby="others-title">
+      <div class="section__head reveal">
+        <p class="eyebrow">Keep looking</p>
+        <h2 class="section__title" id="others-title">Other <em>systems</em></h2>
+      </div>
+      <div class="grid">
+        {% for system in others %}{% include "showcase/_card.html" %}{% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+  <button class="icon-btn lightbox__close" type="button" data-close aria-label="Close">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg>
+  </button>
+  <img src="" alt="">
+</dialog>
+{% endblock %}

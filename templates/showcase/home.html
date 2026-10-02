@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero__copy">
+      <p class="eyebrow">{{ owner_title }}{% if owner_location %} &middot; {{ owner_location }}{% endif %}</p>
+      <h1 class="hero__title" id="hero-title">
+        <span class="line"><span>Systems built</span></span>
+        <span class="line"><span>with care. <em>Receipts</em></span></span>
+        <span class="line"><span><em>you can prove.</em></span></span>
+      </h1>
+      <p class="lede">
+        I'm {{ owner_name }}. These are the systems I've built, what each one is for and what it runs on.
+        Every payment I receive gets a receipt that is signed and recorded on a blockchain I wrote from
+        scratch, so anyone holding one can check it is real.
+      </p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="{% url 'showcase:system_list' %}">Browse the systems
+          <svg class="icon icon--arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="btn btn--ghost" href="{% url 'showcase:verify_lookup' %}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg>
+          Verify a receipt
+        </a>
+      </div>
+    </div>
+
+    <div class="hero__stage" aria-hidden="true">
+      <div class="hero__halo"></div>
+      <canvas data-scene="hero"></canvas>
+      <svg class="stage-fallback" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M100 20 169 60v80l-69 40-69-40V60z"/>
+        <path d="M100 55 139 78v45l-39 22-39-22V78z" stroke-width="1.6"/>
+        <circle cx="100" cy="100" r="92" stroke-dasharray="2 8"/>
+      </svg>
+    </div>
+
+    <span class="scroll-cue" aria-hidden="true"><i></i>Scroll</span>
+  </section>
+
+  <section class="panel stats reveal" aria-label="At a glance">
+    <div class="stat">
+      <span class="stat__value" data-count="{{ system_count }}">{{ system_count }}</span>
+      <span class="stat__label">system{{ system_count|pluralize }} built and on display</span>
+    </div>
+    <div class="stat">
+      <span class="stat__value" data-count="{{ techs|length }}">{{ techs|length }}</span>
+      <span class="stat__label">technologies across those systems</span>
+    </div>
+    <div class="stat">
+      {% if chain.online %}
+        <span class="stat__value" data-count="{{ chain.status.height }}">{{ chain.status.height }}</span>
+        <span class="stat__label">blocks mined on the ledger</span>
+      {% else %}
+        <span class="stat__value">&ndash;</span>
+        <span class="stat__label">blocks (ledger node offline)</span>
+      {% endif %}
+    </div>
+    <div class="stat">
+      {% if not chain.online %}
+        <span class="status status--off"><span class="status__dot"></span>Ledger offline</span>
+        <span class="stat__label">the node is not reachable right now</span>
+      {% elif chain.valid %}
+        <span class="status"><span class="status__dot"></span>Ledger intact</span>
+        <span class="stat__label">every block re-validated from genesis</span>
+      {% else %}
+        <span class="status status--bad"><span class="status__dot"></span>Ledger fault</span>
+        <span class="stat__label">the chain failed validation</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="systems-title">
+    <div class="section__head section__head--split reveal">
+      <div style="display:grid;gap:1rem">
+        <p class="eyebrow">The work</p>
+        <h2 class="section__title" id="systems-title">Systems I've <em>built</em></h2>
+      </div>
+      {% if system_count > systems|length %}
+        <a class="btn btn--ghost" href="{% url 'showcase:system_list' %}">See all {{ system_count }}
+          <svg class="icon icon--arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      {% endif %}
+    </div>
+    {% if systems %}
+      <div class="grid">
+        {% for system in systems %}{% include "showcase/_card.html" %}{% endfor %}
+      </div>
+    {% else %}
+      <div class="panel empty reveal">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-layers"/></svg>
+        <h2>The first systems are on their way</h2>
+        <p>Nothing has been published here yet. In the meantime, the assistant can take down what you need built.</p>
+        <a class="btn btn--primary" href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry</a>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="process-title">
+    <div class="section__head reveal">
+      <p class="eyebrow">Working together</p>
+      <h2 class="section__title" id="process-title">From an idea to a <em>finished system</em></h2>
+      <p class="lede">Every project moves through the same clear stages, so you always know where yours stands.</p>
+    </div>
+    <ol class="steps">
+      {% for title, text in process_steps %}
+        <li class="panel step reveal" style="--i: {{ forloop.counter0 }}">
+          <h3 class="step__title">{{ title }}</h3>
+          <p class="step__text">{{ text }}</p>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="proof-title">
+    <div class="split">
+      <div class="section__head reveal" style="margin-bottom:0">
+        <p class="eyebrow">The ledger</p>
+        <h2 class="section__title" id="proof-title">A receipt nobody can <em>quietly change</em></h2>
+        <p class="lede">
+          Client names and amounts stay private in my database. Only a fingerprint of each receipt goes on
+          the chain, which is enough to prove the receipt has not been altered since the day it was issued.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="{% url 'showcase:ledger' %}">See the ledger
+            <svg class="icon icon--arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </a>
+          <a class="btn btn--ghost" href="{% url 'showcase:verify_lookup' %}">Verify a receipt</a>
+        </div>
+      </div>
+      <div class="proof-list">
+        <div class="panel proof reveal" style="--i:0">
+          <span class="proof__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pen"/></svg></span>
+          <div><h3>Signed</h3><p>Each receipt's SHA-256 fingerprint is signed with my private key (ECDSA, secp256k1).</p></div>
+        </div>
+        <div class="panel proof reveal" style="--i:1">
+          <span class="proof__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cube"/></svg></span>
+          <div><h3>Mined into a block</h3><p>The signed transaction is sealed into a proof-of-work block, linked by hash to every block before it.</p></div>
+        </div>
+        <div class="panel proof reveal" style="--i:2">
+          <span class="proof__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg></span>
+          <div><h3>Checked by anyone</h3><p>Scan the QR code on a receipt and this site re-checks the hash, signature, Merkle proof and chain.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel cta reveal" aria-labelledby="cta-title">
+    <p class="eyebrow">Have something in mind?</p>
+    <h2 class="cta__title" id="cta-title">Let's build <em>your system</em></h2>
+    <p class="lede">Tell the assistant what you need. It takes down your details and I'll get back to you personally.</p>
+    <a class="btn btn--primary" href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry
+      <svg class="icon icon--arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg>
+    </a>
+  </section>
+
+</div>
+{% endblock %}

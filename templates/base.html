@@ -1,0 +1,124 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site_name }}: systems by {{ owner_name }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}Systems built by {{ owner_name }}, with payment receipts anyone can verify on a blockchain built from scratch.{% endblock %}">
+  <meta name="theme-color" content="#070910">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% block robots %}{% endblock %}
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+
+  {# Applies saved display preferences before first paint, so the theme never flashes. #}
+  <script>
+    (function () {
+      var d = document.documentElement, p = {};
+      try { p = JSON.parse(localStorage.getItem('lf:prefs') || '{}'); } catch (e) {}
+      var t = p.theme || 'auto';
+      d.dataset.theme = t === 'auto' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : t;
+      if (p.vision && p.vision !== 'standard') d.dataset.vision = p.vision;
+      if (p.contrast === 'high') d.dataset.contrast = 'high';
+      if (p.text && p.text !== 'md') d.dataset.text = p.text;
+      if (p.motion && p.motion !== 'auto') d.dataset.motion = p.motion;
+      d.classList.add('js');
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400..800&display=swap">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="backdrop" aria-hidden="true">
+    <i class="backdrop__aurora backdrop__aurora--a"></i>
+    <i class="backdrop__aurora backdrop__aurora--b"></i>
+    <i class="backdrop__aurora backdrop__aurora--c"></i>
+    <i class="backdrop__grain"></i>
+    <canvas class="backdrop__canvas" data-scene="backdrop"></canvas>
+  </div>
+
+  {% with page=request.resolver_match.url_name %}
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav" aria-label="Main">
+        <a class="brand" href="{% url 'showcase:home' %}" aria-label="{{ site_name }} home">
+          <svg class="brand__mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25z"/>
+            <path d="M16 9.5 22 13v7l-6 3.5L10 20v-7z" fill="currentColor" fill-opacity=".18"/>
+            <path d="M16 2.5v7M27.7 22.75 22 20M4.3 22.75 10 20"/>
+          </svg>
+          <span>{{ site_name }}</span>
+        </a>
+
+        <div class="nav__links" id="nav-links">
+          <a class="nav__link" href="{% url 'showcase:system_list' %}" {% if page == 'system_list' or page == 'system_detail' %}aria-current="page"{% endif %}>Systems</a>
+          <a class="nav__link" href="{% url 'showcase:ledger' %}" {% if page == 'ledger' %}aria-current="page"{% endif %}>Ledger</a>
+          <a class="nav__link" href="{% url 'showcase:verify_lookup' %}" {% if page == 'verify_lookup' or page == 'verify' %}aria-current="page"{% endif %}>Verify a receipt</a>
+        </div>
+
+        <button class="icon-btn theme-toggle" id="theme-toggle" type="button" aria-label="Switch between dark and light mode">
+          <svg class="icon icon--moon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-moon"/></svg>
+          <svg class="icon icon--sun" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sun"/></svg>
+        </button>
+        <button class="icon-btn" id="a11y-toggle" type="button" aria-label="Display and accessibility settings" aria-expanded="false" aria-controls="a11y-panel">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg>
+        </button>
+        <a class="btn btn--primary btn--sm" href="#chat" data-chat-open>Start an inquiry</a>
+        <button class="icon-btn nav__menu-btn" id="menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-menu"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+  {% endwith %}
+
+  {% include "showcase/_a11y_panel.html" %}
+
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer">
+        <div class="footer__about">
+          <a class="brand" href="{% url 'showcase:home' %}">
+            <svg class="brand__mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true">
+              <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25z"/>
+              <path d="M16 9.5 22 13v7l-6 3.5L10 20v-7z" fill="currentColor" fill-opacity=".18"/>
+            </svg>
+            <span>{{ site_name }}</span>
+          </a>
+          <p>Systems by {{ owner_name }}, {{ owner_title|lower }}{% if owner_location %} in {{ owner_location }}{% endif %}. Every payment receipt is signed and recorded on a blockchain built from scratch.</p>
+        </div>
+        <div>
+          <h2>Explore</h2>
+          <ul>
+            <li><a href="{% url 'showcase:system_list' %}">All systems</a></li>
+            <li><a href="{% url 'showcase:ledger' %}">The ledger</a></li>
+            <li><a href="{% url 'showcase:verify_lookup' %}">Verify a receipt</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Get in touch</h2>
+          <ul>
+            <li><a href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry</a></li>
+            <li><a href="#chat" data-chat-open>Ask the assistant</a></li>
+            {% if owner_email %}<li><a href="mailto:{{ owner_email }}">{{ owner_email }}</a></li>{% endif %}
+          </ul>
+        </div>
+      </div>
+      <p class="footer__fine">&copy; {% now "Y" %} {{ owner_name }}. Built with Django, Three.js, PyTorch and a from-scratch blockchain.</p>
+    </div>
+  </footer>
+
+  {% include "showcase/_chat.html" %}
+  {% include "showcase/_icons.html" %}
+
+  <script type="module" src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

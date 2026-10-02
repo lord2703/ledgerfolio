@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Verify a receipt &middot; {{ site_name }}{% endblock %}
+{% block description %}Check that a receipt from {{ owner_name }} is genuine and unchanged.{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <header class="page-head">
+    <p class="eyebrow">Verification</p>
+    <h1 class="page-title">Is this receipt <em>genuine?</em></h1>
+    <p class="lede">
+      The fastest way is to scan the QR code printed on your receipt. You can also paste the verify
+      link, or the long code at the end of it, below.
+    </p>
+  </header>
+
+  <form class="panel lookup reveal" method="get" action="{% url 'showcase:verify_lookup' %}" role="search">
+    <label class="sr-only" for="code">Verify link or code</label>
+    <input id="code" name="code" type="text" value="{{ code }}" required autocomplete="off" spellcheck="false"
+           placeholder="Paste your verify link or code">
+    <button class="btn btn--primary" type="submit">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>
+      Check receipt
+    </button>
+  </form>
+
+  {% if not_found %}
+    <p class="form-error" role="alert" style="margin-top:1rem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg>
+      No receipt matches that link or code. Check that you copied all of it.
+    </p>
+  {% endif %}
+
+  <section class="section--tight" aria-labelledby="how-title">
+    <h2 class="block-title" id="how-title" style="margin-top:2.5rem">What gets checked</h2>
+    <div class="proof-list">
+      <div class="panel proof reveal" style="--i:0">
+        <span class="proof__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-copy"/></svg></span>
+        <div><h3>The data</h3><p>The receipt's details are hashed again and compared with the fingerprint taken when it was issued.</p></div>
+      </div>
+      <div class="panel proof reveal" style="--i:1">
+        <span class="proof__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pen"/></svg></span>
+        <div><h3>The signature</h3><p>The fingerprint on the blockchain must be signed by {{ owner_name }}'s wallet, and by no one else's.</p></div>
+      </div>
+      <div class="panel proof reveal" style="--i:2">
+        <span class="proof__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-link"/></svg></span>
+        <div><h3>The chain</h3><p>A Merkle proof shows the transaction is in its block, and the whole chain is re-validated back to its first block.</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

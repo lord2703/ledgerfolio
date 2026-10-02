@@ -1,0 +1,87 @@
+{% extends "admin/index.html" %}
+{% load tracker_dashboard %}
+
+{# The Tracker's home page: money and project status at a glance, above Django's own app list. #}
+{% block content %}
+{% tracker_dashboard as dash %}
+<section class="lf-dash" aria-label="Overview">
+  <div class="lf-tiles">
+    <div class="lf-tile" style="--i:0">
+      <span class="lf-tile__label">Outstanding balance</span>
+      <span class="lf-tile__value lf-tile__value--hero">{{ dash.outstanding }}</span>
+      <span class="lf-tile__note">still owed across all projects</span>
+    </div>
+    <div class="lf-tile" style="--i:1">
+      <span class="lf-tile__label">Collected so far</span>
+      <span class="lf-tile__value">{{ dash.collected }}</span>
+      <span class="lf-meter" role="img" aria-label="{{ dash.collected_percent }}% of contract value collected">
+        <span class="lf-meter__fill" style="width:{{ dash.collected_percent }}%"></span>
+      </span>
+      <span class="lf-tile__note">{{ dash.collected_percent }}% of {{ dash.contract }} contracted</span>
+    </div>
+    <div class="lf-tile" style="--i:2">
+      <span class="lf-tile__label">Collected this month</span>
+      <span class="lf-tile__value">{{ dash.this_month }}</span>
+      <span class="lf-tile__note">from payments dated this month</span>
+    </div>
+    <a class="lf-tile" style="--i:3" href="{{ dash.leads_url }}">
+      <span class="lf-tile__label">New inquiries</span>
+      <span class="lf-tile__value">{{ dash.new_leads }}</span>
+      <span class="lf-tile__note">waiting for a reply</span>
+    </a>
+  </div>
+
+  <div class="lf-cols">
+    <div class="lf-card">
+      <h2>Projects by status</h2>
+      <ul class="lf-bars">
+        {% for status in dash.statuses %}
+          <li>
+            <a href="{{ status.url }}" title="Show {{ status.label|lower }} projects">
+              <span>{{ status.label }}</span><b>{{ status.count }}</b>
+              <span class="lf-bar" style="width:{{ status.percent }}%"></span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="lf-card">
+      <h2>Due within 14 days, with a balance</h2>
+      {% if dash.attention %}
+        <ul class="lf-list">
+          {% for item in dash.attention %}
+            <li>
+              <a href="{{ item.url }}">{{ item.name }}</a>
+              <strong>{{ item.balance }}</strong>
+              <small>{{ item.client }} &middot; {% if item.overdue %}<span class="lf-badge lf-badge--bad">Overdue since {{ item.deadline|date:"M j" }}</span>{% else %}due {{ item.deadline|date:"M j" }}{% endif %}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="lf-empty">Nothing with a balance is due in the next two weeks.</p>
+      {% endif %}
+    </div>
+
+    <div class="lf-card">
+      <h2>Receipts and ledger</h2>
+      <dl class="lf-kv">
+        <dt>Blockchain node</dt>
+        <dd>
+          {% if not dash.chain.online %}<span class="lf-badge lf-badge--bad">Offline</span>
+          {% elif dash.chain.valid %}<span class="lf-badge lf-badge--good">Online, chain intact</span>
+          {% else %}<span class="lf-badge lf-badge--bad">Chain failed validation</span>{% endif %}
+        </dd>
+        {% if dash.chain.online %}
+          <dt>Block height</dt><dd>{{ dash.chain.status.height }}</dd>
+        {% endif %}
+        <dt>Receipts issued</dt><dd>{{ dash.receipt_count }}</dd>
+        <dt>Receipts not yet confirmed</dt><dd>{{ dash.receipts_not_confirmed }}</dd>
+        <dt>Payments without a receipt</dt><dd>{{ dash.payments_without_receipt }}</dd>
+        <dt>Systems on the Showcase</dt><dd>{{ dash.public_count }} of {{ dash.project_count }}</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+{{ block.super }}
+{% endblock %}

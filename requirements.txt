@@ -23,6 +23,7 @@ cryptography>=44.0
 
 # --- AI assistant (ai/) ---
 torch>=2.5
+numpy>=2.0
 
 # --- Production server (Linux VPS only) ---
 gunicorn>=23.0; sys_platform != "win32"

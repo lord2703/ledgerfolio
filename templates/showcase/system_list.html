@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Systems &middot; {{ site_name }}{% endblock %}
+{% block description %}Every system {{ owner_name }} has on public display: what it is, its tech stack, objectives and purpose.{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <p class="eyebrow">The work</p>
+    <h1 class="page-title">{{ system_count }} system{{ system_count|pluralize }}, <em>built and delivered</em></h1>
+    <p class="lede">Each one lists what it is for, the objectives it was built to meet and the technology behind it.</p>
+  </header>
+
+  {% if techs %}
+    <nav class="chips reveal" aria-label="Filter by technology" style="margin-bottom:2rem">
+      <a class="chip" href="{% url 'showcase:system_list' %}" {% if not active_tech %}aria-current="true"{% endif %}>All</a>
+      {% for tech in techs %}
+        <a class="chip" href="?tech={{ tech|urlencode }}" {% if tech == active_tech %}aria-current="true"{% endif %}>{{ tech }}</a>
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  {% if systems %}
+    <div class="grid">
+      {% for system in systems %}{% include "showcase/_card.html" %}{% endfor %}
+    </div>
+  {% else %}
+    <div class="panel empty reveal">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-layers"/></svg>
+      <h2>The first systems are on their way</h2>
+      <p>Nothing has been published here yet. In the meantime, the assistant can take down what you need built.</p>
+      <a class="btn btn--primary" href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

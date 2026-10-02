@@ -1,0 +1,27 @@
+{# One public system. Receives `system` (a PublicSystem: public fields only). #}
+<article class="card reveal" style="--i: {{ forloop.counter0|default:0 }}">
+  <div class="card__cover" style="view-transition-name: cover-{{ system.slug }}">
+    {% if system.cover %}
+      <img src="{{ system.cover.url }}" alt="" loading="lazy">
+    {% else %}
+      {% include "showcase/_glyph.html" with style=system.preview_style %}
+      <span class="card__initials" aria-hidden="true">{{ system.initials }}</span>
+    {% endif %}
+    <span class="card__year">{{ system.year }}</span>
+  </div>
+  <div class="card__body">
+    <h3 class="card__title">
+      <a class="card__link" href="{{ system.url }}">{{ system.name }}</a>
+    </h3>
+    {% if system.tagline %}<p class="card__text">{{ system.tagline }}</p>{% endif %}
+    {% if system.stack %}
+      <ul class="chips" aria-label="Tech stack">
+        {% for tech in system.stack|slice:":4" %}<li class="chip">{{ tech }}</li>{% endfor %}
+        {% if system.stack|length > 4 %}<li class="chip">+{{ system.stack|length|add:"-4" }}</li>{% endif %}
+      </ul>
+    {% endif %}
+    <span class="card__more" aria-hidden="true">View system
+      <svg class="icon" viewBox="0 0 24 24"><use href="#i-arrow"/></svg>
+    </span>
+  </div>
+</article>

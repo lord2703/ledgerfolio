@@ -1,0 +1,60 @@
+{# Display and accessibility settings. Choices are saved in the visitor's own browser. #}
+<aside class="a11y panel" id="a11y-panel" role="dialog" aria-labelledby="a11y-title">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+    <h2 class="a11y__title" id="a11y-title">Display</h2>
+    <button class="icon-btn" id="a11y-close" type="button" aria-label="Close display settings">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg>
+    </button>
+  </div>
+
+  <fieldset class="a11y__group">
+    <legend>Theme</legend>
+    <div class="seg">
+      <label><input type="radio" name="theme" value="auto">Auto</label>
+      <label><input type="radio" name="theme" value="light">Light</label>
+      <label><input type="radio" name="theme" value="dark">Dark</label>
+    </div>
+  </fieldset>
+
+  <fieldset class="a11y__group">
+    <legend>Colour vision</legend>
+    <div class="seg seg--stack">
+      <label><input type="radio" name="vision" value="standard">Standard
+        <span class="swatches" aria-hidden="true"><i style="background:#e2b867"></i><i style="background:#4ad6a0"></i><i style="background:#ff7a7a"></i></span></label>
+      <label><input type="radio" name="vision" value="redgreen">Red-green safe
+        <span class="swatches" aria-hidden="true"><i style="background:#ffd24a"></i><i style="background:#56b4e9"></i><i style="background:#e8590c"></i></span></label>
+      <label><input type="radio" name="vision" value="blueyellow">Blue-yellow safe
+        <span class="swatches" aria-hidden="true"><i style="background:#ff7d95"></i><i style="background:#22c7bd"></i><i style="background:#ff5c7a"></i></span></label>
+      <label><input type="radio" name="vision" value="mono">Monochrome
+        <span class="swatches" aria-hidden="true"><i style="background:#f2f2f2"></i><i style="background:#bdbdbd"></i><i style="background:#8c8c8c"></i></span></label>
+    </div>
+    <p class="a11y__hint">Red-green safe suits protanopia and deuteranopia; blue-yellow safe suits tritanopia. Statuses always show an icon and a label too, never colour alone.</p>
+  </fieldset>
+
+  <fieldset class="a11y__group">
+    <legend>Contrast</legend>
+    <div class="seg">
+      <label><input type="radio" name="contrast" value="normal">Normal</label>
+      <label><input type="radio" name="contrast" value="high">High</label>
+    </div>
+  </fieldset>
+
+  <fieldset class="a11y__group">
+    <legend>Text size</legend>
+    <div class="seg">
+      <label><input type="radio" name="text" value="md"><span style="font-size:.85rem">A</span><span class="sr-only">Normal</span></label>
+      <label><input type="radio" name="text" value="lg"><span style="font-size:1.05rem">A</span><span class="sr-only">Large</span></label>
+      <label><input type="radio" name="text" value="xl"><span style="font-size:1.3rem">A</span><span class="sr-only">Extra large</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset class="a11y__group">
+    <legend>Motion</legend>
+    <div class="seg">
+      <label><input type="radio" name="motion" value="auto">Follow system</label>
+      <label><input type="radio" name="motion" value="reduce">Reduced</label>
+    </div>
+  </fieldset>
+
+  <button class="btn btn--ghost btn--sm" id="a11y-reset" type="button">Reset to defaults</button>
+</aside>

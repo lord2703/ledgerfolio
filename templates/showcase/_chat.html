@@ -1,0 +1,28 @@
+{# Portfolio Assistant widget. Behaviour lives in static/js/app.js. #}
+<button class="chat-fab" id="chat-fab" type="button" aria-expanded="false" aria-controls="chat">
+  <span class="chat-fab__pulse" aria-hidden="true"></span>
+  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chat"/></svg>
+  <span class="chat-fab__label">Ask the assistant</span>
+</button>
+
+<section class="chat panel" id="chat" aria-label="Portfolio Assistant" data-endpoint="{% url 'showcase:chat' %}">
+  <header class="chat__head">
+    <span class="chat__avatar" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><use href="#i-spark"/></svg></span>
+    <div style="margin-right:auto">
+      <div class="chat__name">Portfolio Assistant</div>
+      <div class="chat__sub">A small AI trained from scratch. It only knows public information.</div>
+    </div>
+    <button class="icon-btn" id="chat-close" type="button" aria-label="Close chat">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg>
+    </button>
+  </header>
+  <div class="chat__log" id="chat-log" role="log" aria-live="polite" tabindex="0" aria-label="Conversation"></div>
+  <div class="chat__suggest" id="chat-suggest"></div>
+  <form class="chat__form" id="chat-form" autocomplete="off">
+    <label class="sr-only" for="chat-input">Your message</label>
+    <input id="chat-input" type="text" maxlength="500" placeholder="Ask about a system, receipts, or start an inquiry">
+    <button class="chat__send" id="chat-send" type="submit" aria-label="Send message">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-send"/></svg>
+    </button>
+  </form>
+</section>

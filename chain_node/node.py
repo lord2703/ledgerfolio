@@ -34,8 +34,15 @@ class NodeError(Exception):
         self.status = status
 
 
+_http = None
+
+
 def http_request(method: str, url: str, json=None, headers=None, timeout: float = 5.0):
-    response = httpx.request(method, url, json=json, headers=headers, timeout=timeout)
+    """Talk to a peer over one shared connection pool."""
+    global _http
+    if _http is None:
+        _http = httpx.Client()
+    response = _http.request(method, url, json=json, headers=headers, timeout=timeout)
     return response.status_code, response.json()
 
 

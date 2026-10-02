@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found &middot; {{ site_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <section class="panel empty">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>
+    <h1 style="font-size:clamp(2rem,5vw,3rem)">This page isn't here</h1>
+    <p>The link may be old, or the system may no longer be on public display.</p>
+    <div class="hero__actions" style="justify-content:center">
+      <a class="btn btn--primary" href="{% url 'showcase:home' %}">Back to the start</a>
+      <a class="btn btn--ghost" href="{% url 'showcase:system_list' %}">Browse the systems</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

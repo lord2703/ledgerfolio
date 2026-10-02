@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}The ledger &middot; {{ site_name }}{% endblock %}
+{% block description %}The blockchain {{ owner_name }} built from scratch to make payment receipts tamper-evident.{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="page-head">
+    <p class="eyebrow">The ledger</p>
+    <h1 class="page-title">A blockchain, <em>built from scratch</em></h1>
+    <p class="lede">
+      Signed transactions, proof-of-work blocks, Merkle proofs, a mempool and peer-to-peer sync, written
+      in Python. It records one thing: fingerprints of the receipts I issue.
+    </p>
+  </header>
+
+  {% if chain.online %}
+    <section class="panel stats reveal" aria-label="Chain status">
+      <div class="stat">
+        <span class="stat__value" data-count="{{ chain.status.height }}">{{ chain.status.height }}</span>
+        <span class="stat__label">block height</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value" data-count="{{ chain.status.transactions }}">{{ chain.status.transactions }}</span>
+        <span class="stat__label">receipt fingerprints recorded</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value">{{ chain.status.mining_difficulty }}<small>bits</small></span>
+        <span class="stat__label">proof-of-work difficulty</span>
+      </div>
+      <div class="stat">
+        {% if chain.valid %}
+          <span class="status"><span class="status__dot"></span>Chain intact</span>
+          <span class="stat__label">re-validated from the genesis block just now</span>
+        {% else %}
+          <span class="status status--bad"><span class="status__dot"></span>Chain fault</span>
+          <span class="stat__label">{{ chain.reason }}</span>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="blocks-title">
+      <div class="section__head reveal">
+        <p class="eyebrow">Latest blocks</p>
+        <h2 class="section__title" id="blocks-title">Each block is <em>locked to the one before</em></h2>
+        <p class="lede">A block's hash covers the hash of the block before it. Change any old block and every hash after it stops matching.</p>
+      </div>
+      <ol class="chain" reversed>
+        {% for block in chain.blocks %}
+          <li class="panel block reveal" style="--i: {{ forloop.counter0 }}">
+            <span class="block__index">#{{ block.index }}</span>
+            <div>
+              <p class="mono block__hash">{{ block.hash }}</p>
+              <p class="block__meta">
+                <span>{% if block.index == 0 %}Fixed starting point{% else %}{{ block.time|date:"M j, Y, H:i" }} UTC{% endif %}</span>
+                <span>{{ block.tx_count }} transaction{{ block.tx_count|pluralize }}</span>
+                {% if block.index %}<span>nonce {{ block.nonce }}</span>{% endif %}
+              </p>
+            </div>
+            <span class="block__tag">{% if block.index == 0 %}Genesis{% elif forloop.first %}Latest{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% else %}
+    <section class="panel empty reveal">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>
+      <h2>The node is offline right now</h2>
+      <p>The blockchain node is not reachable at the moment, so live chain data can't be shown. Receipts can be verified again as soon as it is back.</p>
+    </section>
+  {% endif %}
+
+  <section class="section" aria-labelledby="how-title">
+    <div class="section__head reveal">
+      <p class="eyebrow">How it works</p>
+      <h2 class="section__title" id="how-title">From a payment to a <em>provable receipt</em></h2>
+    </div>
+    <ol class="steps">
+      <li class="panel step reveal" style="--i:0"><h3 class="step__title">Fingerprint</h3><p class="step__text">The receipt's data fields are hashed with SHA-256. Only that hash leaves the database; names and amounts stay private.</p></li>
+      <li class="panel step reveal" style="--i:1"><h3 class="step__title">Sign</h3><p class="step__text">The hash becomes a transaction signed with my private key using ECDSA on the secp256k1 curve.</p></li>
+      <li class="panel step reveal" style="--i:2"><h3 class="step__title">Mine</h3><p class="step__text">The transaction waits in the mempool until a miner finds a nonce that gives the block a hash under the difficulty target.</p></li>
+      <li class="panel step reveal" style="--i:3"><h3 class="step__title">Prove</h3><p class="step__text">A Merkle tree ties every transaction to the block header, so one receipt can be proven without revealing the others.</p></li>
+      <li class="panel step reveal" style="--i:4"><h3 class="step__title">Sync</h3><p class="step__text">Nodes share transactions and blocks over HTTP and each validates everything independently.</p></li>
+      <li class="panel step reveal" style="--i:5"><h3 class="step__title">Resolve</h3><p class="step__text">If two versions of the chain exist, nodes follow the valid one with the most accumulated proof-of-work.</p></li>
+    </ol>
+
+    <p class="note reveal" style="margin-top:1.5rem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg>
+      <span><strong>An honest note.</strong> I run all the nodes myself, so this chain is not decentralized.
+        What it gives you today is tamper-evidence: a receipt, or any block, cannot be edited without the
+        change being detected. It becomes stronger if independent nodes join, or if the latest block hash
+        is anchored to a public network.</span>
+    </p>
+  </section>
+</div>
+{% endblock %}
