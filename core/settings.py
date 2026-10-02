@@ -131,6 +131,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_THROTTLE_RATES": {"chat": env("CHAT_RATE_LIMIT", default="20/min")},
     "UNAUTHENTICATED_USER": None,
+    # How many reverse proxies sit in front of Django. 0 locally; 1 behind
+    # Nginx, so the rate limit sees each visitor's real address instead of
+    # everyone sharing Nginx's 127.0.0.1.
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=0),
 }
 
 # --- Site identity (shown on the Showcase, receipts and emails) ----------

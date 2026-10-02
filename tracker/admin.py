@@ -20,6 +20,11 @@ def badge(label, tone):
     return format_html('<span class="lf-badge lf-badge--{}">{}</span>', tone, label)
 
 
+def amount(value):
+    """Money that never wraps across two lines in a table cell."""
+    return format_html('<span class="lf-money">{}</span>', money(value))
+
+
 STATUS_TONES = {
     Project.Status.IN_DEVELOPMENT: "info",
     Project.Status.READY_FOR_PRE_ORAL: "warn",
@@ -65,11 +70,11 @@ class ClientProjectInline(admin.TabularInline):
 
     @admin.display(description="Paid so far")
     def paid(self, obj):
-        return money(obj.paid_so_far)
+        return amount(obj.paid_so_far)
 
     @admin.display(description="Balance")
     def owed(self, obj):
-        return money(obj.balance)
+        return amount(obj.balance)
 
 
 @admin.register(Client)
@@ -131,13 +136,14 @@ class BalanceFilter(admin.SimpleListFilter):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
-        "system_name", "client", "status_badge", "price", "paid", "owed", "progress",
-        "deadline", "is_public",
+        "system_name", "client", "status_badge", "price", "paid", "owed", "deadline", "is_public",
     )
     list_filter = ("status", BalanceFilter, "is_public", "deadline")
     search_fields = ("system_name", "client__name", "tech_stack", "notes")
     autocomplete_fields = ("client",)
-    date_hierarchy = "created_at"
+    # A plain date field: browsing by a date-time field would need MySQL's
+    # time zone tables, which Windows installs of MySQL don't have.
+    date_hierarchy = "deadline"
     inlines = [PaymentInline, ScreenshotInline]
     actions = ["show_on_showcase", "hide_from_showcase"]
     readonly_fields = ("money_summary",)
@@ -162,24 +168,21 @@ class ProjectAdmin(admin.ModelAdmin):
 
     @admin.display(description="Total price", ordering="total_price")
     def price(self, obj):
-        return money(obj.total_price)
+        return amount(obj.total_price)
 
     @admin.display(description="Paid so far", ordering="paid_total")
     def paid(self, obj):
-        return money(obj.paid_so_far)
+        """The amount, with a slim meter of how much of the price it covers."""
+        return format_html(
+            '<span class="lf-paid">{}<span class="lf-meter lf-meter--slim" role="img" '
+            'aria-label="{}% paid" title="{}% paid"><span class="lf-meter__fill" '
+            'style="width:{}%"></span></span></span>',
+            amount(obj.paid_so_far), obj.paid_percent, obj.paid_percent, obj.paid_percent,
+        )
 
     @admin.display(description="Balance", ordering="balance_total")
     def owed(self, obj):
-        return money(obj.balance)
-
-    @admin.display(description="Paid")
-    def progress(self, obj):
-        return format_html(
-            '<span class="lf-meter" role="img" aria-label="{0}% paid">'
-            '<span class="lf-meter__fill" style="width:{0}%"></span></span>'
-            '<span class="lf-meter__label">{0}%</span>',
-            obj.paid_percent,
-        )
+        return amount(obj.balance)
 
     @admin.display(description="Payments")
     def money_summary(self, obj):
@@ -254,7 +257,7 @@ class PaymentAdmin(admin.ModelAdmin):
 
     @admin.display(description="Amount", ordering="amount")
     def amount_display(self, obj):
-        return money(obj.amount)
+        return amount(obj.amount)
 
     @admin.display(description="Receipt")
     def receipt_state(self, obj):
@@ -290,15 +293,15 @@ class ReceiptAdmin(admin.ModelAdmin):
     )
     list_filter = ("ledger_status", "document_type", "issued_at")
     search_fields = ("receipt_number", "client_name", "system_name", "tx_id")
-    date_hierarchy = "issued_at"
+    date_hierarchy = "payment_date"  # a date field; see ProjectAdmin.date_hierarchy
     actions = ["anchor_on_ledger", "resend_email", "regenerate_pdf"]
-    readonly_fields = ("verify_link", "pdf_link", "integrity")
+    readonly_fields = ("verify_link", "pdf_link", "integrity", "amount_display", "balance_display")
     fieldsets = (
         (None, {"fields": ("receipt_number", "document_type", "issued_at", "payment")}),
         ("Share with the client", {"fields": ("verify_link", "pdf_link", "emailed_to", "emailed_at")}),
         ("What the receipt says", {
-            "fields": ("client_name", "system_name", "amount", "balance_after", "payment_method",
-                       "payment_date"),
+            "fields": ("client_name", "system_name", "amount_display", "balance_display",
+                       "payment_method", "payment_date"),
         }),
         ("Blockchain", {
             "fields": ("integrity", "ledger_status", "content_hash", "tx_id", "block_index",
@@ -345,7 +348,11 @@ class ReceiptAdmin(admin.ModelAdmin):
 
     @admin.display(description="Amount", ordering="amount")
     def amount_display(self, obj):
-        return money(obj.amount)
+        return amount(obj.amount)
+
+    @admin.display(description="Balance after this payment")
+    def balance_display(self, obj):
+        return amount(obj.balance_after)
 
     @admin.display(description="Ledger", ordering="ledger_status")
     def ledger_badge(self, obj):

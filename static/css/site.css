@@ -56,7 +56,7 @@
   --line-strong: rgba(22, 26, 42, 0.24);
   --text: #141826;
   --text-2: #454b61;
-  --muted: #6c7289;
+  --muted: #5f657b;
 
   --accent: #946712;
   --accent-2: #3b55d9;
@@ -256,7 +256,7 @@ main { display: block; padding-top: 6.5rem; }
 .section--tight { padding-block: clamp(2rem, 5vw, 3.5rem); }
 
 .eyebrow {
-  display: inline-flex; align-items: center; gap: 0.6rem;
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.25rem 0.6rem;
   font-size: 0.74rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--accent);
 }
@@ -284,8 +284,10 @@ main { display: block; padding-top: 6.5rem; }
   backdrop-filter: blur(var(--blur)) saturate(1.5);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5);
   box-shadow: var(--shadow);
-  transition: background-color 0.4s var(--ease), border-color 0.4s var(--ease);
+  transition: background-color 0.4s var(--ease), border-color 0.4s var(--ease), padding 0.4s var(--ease);
 }
+/* Once the page scrolls, the bar firms up so text never shows through it. */
+.is-scrolled .nav { background: color-mix(in srgb, var(--bg) 84%, transparent); border-color: var(--line-strong); }
 :root[data-contrast="high"] .nav { background: var(--bg); }
 
 .brand { display: inline-flex; align-items: center; gap: 0.65rem; font-family: var(--font-display);
@@ -450,7 +452,9 @@ a.chip:hover, .chip[aria-current="true"] { border-color: var(--accent); color: v
 canvas.is-ready ~ .stage-fallback { opacity: 0; }
 
 .scroll-cue { position: absolute; left: 0; bottom: 0; display: inline-flex; align-items: center; gap: 0.7rem;
-  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
+  transition: opacity 0.5s var(--ease), transform 0.6s var(--ease); }
+.is-scrolled .scroll-cue { opacity: 0; transform: translateY(10px); }
 .scroll-cue i { width: 1px; height: 2.4rem; background: linear-gradient(var(--accent), transparent);
   animation: cue 2.4s var(--ease) infinite; transform-origin: top; }
 
@@ -464,6 +468,24 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 .stat__label { font-size: 0.82rem; color: var(--text-2); }
 .stat__value small { font-family: var(--font-body); font-size: 0.9rem; font-weight: 600; color: var(--text-2);
   letter-spacing: 0; margin-left: 0.3rem; }
+
+/* Technology band: a slow, endless scroll. Pauses on hover; still when motion is reduced. */
+.marquee { --duration: 60s; position: relative; margin-top: clamp(2.5rem, 6vw, 4.5rem); overflow: hidden;
+  padding-block: 0.4rem; mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+.marquee__label { margin-bottom: 1.1rem; text-align: center; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+.marquee__track { display: flex; width: max-content; animation: marquee var(--duration) linear infinite; }
+.marquee:hover .marquee__track { animation-play-state: paused; }
+.marquee__list { display: flex; flex: none; }
+.marquee__list li { display: inline-flex; align-items: center; gap: clamp(1.4rem, 3vw, 2.4rem);
+  padding-right: clamp(1.4rem, 3vw, 2.4rem); font-family: var(--font-display); font-style: italic; font-weight: 400;
+  font-size: clamp(1.35rem, 2.6vw, 2.1rem); line-height: 1.3; color: var(--text-2); white-space: nowrap;
+  transition: color 0.3s var(--ease); }
+.marquee__list li:hover { color: var(--text); }
+.marquee__list li::after { content: ""; width: 0.42rem; height: 0.42rem; flex: none; background: var(--accent);
+  transform: rotate(45deg); opacity: 0.75; }
+@keyframes marquee { to { transform: translateX(-50%); } }
 
 /* Status: icon + label + colour. The shape differs per state as well. */
 .status { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.9rem; }
@@ -557,7 +579,7 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 /* ---------- 12. Verify --------------------------------------------------- */
 
 .verdict { display: grid; gap: 1.5rem; padding: clamp(1.75rem, 5vw, 3rem); justify-items: center; text-align: center;
-  overflow: hidden; --tone: var(--muted); }
+  overflow: hidden; margin-top: clamp(0.75rem, 3vw, 2rem); --tone: var(--muted); }
 .verdict--valid { --tone: var(--good); }
 .verdict--tampered { --tone: var(--bad); }
 .verdict--pending { --tone: var(--warn); }
@@ -659,8 +681,9 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 
 /* ---------- 15. Accessibility panel -------------------------------------- */
 
-.a11y { position: fixed; top: 4.9rem; right: max(1.25rem, calc((100vw - 1180px) / 2)); z-index: 70;
-  width: min(23rem, calc(100vw - 2rem)); padding: 1.3rem; display: grid; gap: 1.15rem;
+/* Above the chat button, so nothing covers the panel's last controls. */
+.a11y { position: fixed; top: 4.9rem; right: max(1.25rem, calc((100vw - 1180px) / 2)); z-index: 95;
+  width: min(23rem, calc(100vw - 2rem)); padding: 1.15rem 1.2rem; display: grid; gap: 0.95rem;
   background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
   opacity: 0; visibility: hidden; transform: translateY(-10px) scale(0.98); transform-origin: top right;
   transition: opacity 0.3s var(--ease), transform 0.4s var(--ease), visibility 0.3s;
@@ -675,7 +698,7 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
   border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .seg--stack { grid-auto-flow: row; }
 .seg label { position: relative; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-  padding: 0.5rem 0.6rem; border-radius: 10px; font-size: 0.84rem; font-weight: 600; color: var(--text-2);
+  padding: 0.45rem 0.6rem; border-radius: 10px; font-size: 0.84rem; font-weight: 600; color: var(--text-2);
   cursor: pointer; text-align: center; transition: background-color 0.25s var(--ease), color 0.25s var(--ease); }
 .seg--stack label { justify-content: flex-start; padding-inline: 0.8rem; }
 .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
@@ -796,6 +819,19 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
   transition-duration: 0.001ms !important; scroll-behavior: auto !important;
 }
 :root[data-motion="reduce"] .reveal { opacity: 1; transform: none; }
+/* A still marquee shows a centred, wrapped list instead of a frozen strip. */
+:root[data-motion="reduce"] .marquee { mask-image: none; -webkit-mask-image: none; }
+:root[data-motion="reduce"] .marquee__track { width: auto; justify-content: center; }
+:root[data-motion="reduce"] .marquee__list { flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
+:root[data-motion="reduce"] .marquee__list[aria-hidden="true"],
+:root[data-motion="reduce"] .marquee__repeat { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) .marquee { mask-image: none; -webkit-mask-image: none; }
+  :root:not([data-motion="full"]) .marquee__track { width: auto; justify-content: center; }
+  :root:not([data-motion="full"]) .marquee__list { flex-wrap: wrap; justify-content: center; row-gap: 0.4rem; }
+  :root:not([data-motion="full"]) .marquee__list[aria-hidden="true"],
+  :root:not([data-motion="full"]) .marquee__repeat { display: none; }
+}
 :root[data-motion="reduce"]::view-transition-group(*),
 :root[data-motion="reduce"]::view-transition-old(*),
 :root[data-motion="reduce"]::view-transition-new(*) { animation: none !important; }
@@ -830,7 +866,8 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
   .nav .btn { display: none; }
   .steps { grid-template-columns: 1fr; }
   .facts { grid-template-columns: 1fr 1fr; }
-  .fact { border-left: 0; border-top: 1px solid var(--line); }
+  .fact { border-left: 0; border-top: 1px solid var(--line); padding: 0.85rem 0.9rem; }
+  .hero .eyebrow__sep { display: none; }
   .fact:nth-child(-n + 2) { border-top: 0; }
   .fact:nth-child(even) { border-left: 1px solid var(--line); }
   .block { grid-template-columns: auto 1fr; margin-left: 0; }

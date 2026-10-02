@@ -3,6 +3,7 @@
 import datetime
 
 from django import template
+from django.conf import settings
 from django.db.models import Sum
 from django.urls import reverse
 from django.utils import timezone
@@ -62,10 +63,12 @@ def tracker_dashboard():
     chain = ledger.overview(NodeClient(timeout=1.5), blocks=1)
 
     return {
+        # Big figures are split from the currency code, which is set smaller.
+        "currency": settings.CURRENCY_CODE,
         "contract": money(contract),
-        "collected": money(collected),
-        "outstanding": money(outstanding),
-        "this_month": money(this_month),
+        "collected": f"{collected:,.2f}",
+        "outstanding": f"{outstanding:,.2f}",
+        "this_month": f"{this_month:,.2f}",
         "collected_percent": int(collected * 100 / contract) if contract else 0,
         "project_count": len(projects),
         "public_count": sum(1 for p in projects if p.is_public),

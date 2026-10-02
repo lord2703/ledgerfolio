@@ -210,7 +210,7 @@ class AdminTests(LocalNodeMixin, TestCase):
             self.assertEqual(response.status_code, 200, name)
         dashboard = self.client.get(reverse("admin:index")).content.decode()
         self.assertIn("Outstanding balance", dashboard)
-        self.assertIn("PHP 7,000.00", dashboard)
+        self.assertIn("<small>PHP</small>7,000.00", dashboard)
         self.assertIn("Online, chain intact", dashboard)
 
     def test_dashboard_survives_the_node_being_down(self):
@@ -249,7 +249,7 @@ class AdminTests(LocalNodeMixin, TestCase):
         detail = self.client.get(reverse("admin:tracker_receipt_change", args=[receipt.pk]))
         self.assertContains(detail, receipt.verify_url)
         self.assertContains(detail, "Copy link")
-        self.assertContains(detail, "genuine")
+        self.assertContains(detail, "sealed in block #1")
 
         pdf = self.client.get(reverse("admin:tracker_receipt_pdf", args=[receipt.pk]))
         self.assertEqual(pdf["Content-Type"], "application/pdf")

@@ -240,14 +240,42 @@ ul.messagelist { padding-top: 14px; }
 .dashboard .module table th { padding: 11px 16px; }
 .dashboard .module table td { padding: 11px 12px; }
 
-/* Login */
-.login { background: radial-gradient(90% 70% at 20% 0%, #1a2550, transparent 60%),
+/* Login. `body.login` outranks Django's own login.css, which loads after this file. */
+body.login { min-height: 100vh; background:
+  radial-gradient(90% 70% at 20% 0%, #1a2550, transparent 60%),
   radial-gradient(70% 60% at 100% 100%, #3a2c0c, transparent 60%), #070910; }
-.login #container { border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;
-  box-shadow: 0 40px 90px -40px #000; }
-.login #header { justify-content: center; padding: 22px; }
-.login .submit-row { border: 0; background: none; padding: 1em 0 0; }
-.login .submit-row input { width: 100%; }
+body.login #container { width: 26em; margin: 14vh auto 0; border-radius: 20px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12); background: var(--lf-surface);
+  box-shadow: 0 50px 110px -40px #000, 0 0 0 1px rgba(226, 184, 103, 0.15);
+  animation: lf-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+body.login #header { justify-content: center; padding: 26px 22px; }
+body.login #content { padding: 26px 30px 30px; }
+body.login .form-row { padding: 6px 0 12px; border: 0; }
+body.login .form-row label { display: block; margin-bottom: 6px; font-weight: 600; }
+body.login .form-row input { width: 100%; box-sizing: border-box; padding: 11px 13px; }
+body.login .submit-row { border: 0; background: none; padding: 1em 0 0; margin: 0; }
+body.login .submit-row input { width: 100%; padding: 12px; font-size: 0.9rem; }
+
+/* ---------- Top navigation (replaces the side panel) ------------------------ */
+
+#header { flex-wrap: wrap; gap: 10px 20px; }
+#branding { order: 0; }
+#header .lf-nav { order: 1; display: flex; flex-wrap: wrap; gap: 2px; margin: 0 auto 0 12px; }
+#user-tools { order: 2; }
+#header .lf-nav a { padding: 7px 13px; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+  color: #b9bfd3; text-decoration: none; border: 1px solid transparent; }
+#header .lf-nav a:hover { color: #ffffff; background: rgba(255, 255, 255, 0.07); }
+#header .lf-nav a[aria-current="page"] { color: #ffffff; border-color: rgba(226, 184, 103, 0.55);
+  background: rgba(226, 184, 103, 0.14); }
+
+/* ---------- Tables: money, meters, hashes ------------------------------------ */
+
+.lf-money { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lf-paid { display: inline-grid; gap: 5px; }
+.lf-meter--slim { width: 100%; height: 4px; }
+.field-content_hash .readonly, .field-tx_id .readonly, .field-block_hash .readonly {
+  font-family: var(--font-family-monospace); font-size: 0.78rem; word-break: break-all; }
+form .aligned ul.lf-checks { margin-left: 0; padding-left: 0; }
 
 /* ---------- Ledgerfolio components ---------------------------------------- */
 
@@ -295,8 +323,10 @@ ul.messagelist { padding-top: 14px; }
   animation: lf-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
 .lf-tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--lf-gold); opacity: 0.85; }
 .lf-tile__label { font-size: 0.78rem; color: var(--body-quiet-color); font-weight: 600; }
-.lf-tile__value { font-size: 1.7rem; font-weight: 700; line-height: 1.15; color: var(--body-loud-color); letter-spacing: -0.02em; }
+.lf-tile__value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 7px; font-size: 1.7rem; font-weight: 700;
+  line-height: 1.15; color: var(--body-loud-color); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .lf-tile__value--hero { font-size: 2.2rem; }
+.lf-tile__value small { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--body-quiet-color); }
 .lf-tile__note { font-size: 0.78rem; color: var(--body-quiet-color); }
 .lf-tile .lf-meter { width: 100%; margin-top: 6px; }
 a.lf-tile:hover { border-color: var(--lf-gold); transform: translateY(-2px); }

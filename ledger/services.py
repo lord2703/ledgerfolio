@@ -338,7 +338,11 @@ def verify(receipt, client: NodeClient | None = None) -> Verification:
             PENDING,
             "This receipt is signed and waiting to be sealed into a block. Check back in a moment.",
         )
-    return finish(VALID, "This receipt is genuine and has not been changed since it was issued.")
+    return finish(
+        VALID,
+        "Nothing in it has changed since it was issued, and its fingerprint is sealed in "
+        f"block #{result.block['index']} of the ledger.",
+    )
 
 
 # ----------------------------------------------------------------------

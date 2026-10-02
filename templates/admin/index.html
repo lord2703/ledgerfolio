@@ -2,18 +2,20 @@
 {% load tracker_dashboard %}
 
 {# The Tracker's home page: money and project status at a glance, above Django's own app list. #}
+{% block coltype %}colM{% endblock %}
+
 {% block content %}
 {% tracker_dashboard as dash %}
 <section class="lf-dash" aria-label="Overview">
   <div class="lf-tiles">
     <div class="lf-tile" style="--i:0">
       <span class="lf-tile__label">Outstanding balance</span>
-      <span class="lf-tile__value lf-tile__value--hero">{{ dash.outstanding }}</span>
+      <span class="lf-tile__value lf-tile__value--hero"><small>{{ dash.currency }}</small>{{ dash.outstanding }}</span>
       <span class="lf-tile__note">still owed across all projects</span>
     </div>
     <div class="lf-tile" style="--i:1">
       <span class="lf-tile__label">Collected so far</span>
-      <span class="lf-tile__value">{{ dash.collected }}</span>
+      <span class="lf-tile__value"><small>{{ dash.currency }}</small>{{ dash.collected }}</span>
       <span class="lf-meter" role="img" aria-label="{{ dash.collected_percent }}% of contract value collected">
         <span class="lf-meter__fill" style="width:{{ dash.collected_percent }}%"></span>
       </span>
@@ -21,7 +23,7 @@
     </div>
     <div class="lf-tile" style="--i:2">
       <span class="lf-tile__label">Collected this month</span>
-      <span class="lf-tile__value">{{ dash.this_month }}</span>
+      <span class="lf-tile__value"><small>{{ dash.currency }}</small>{{ dash.this_month }}</span>
       <span class="lf-tile__note">from payments dated this month</span>
     </div>
     <a class="lf-tile" style="--i:3" href="{{ dash.leads_url }}">
@@ -85,3 +87,6 @@
 </section>
 {{ block.super }}
 {% endblock %}
+
+{# Recent actions are left out: the cards above are what a one-person desk needs. #}
+{% block sidebar %}{% endblock %}

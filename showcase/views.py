@@ -1,5 +1,6 @@
 """Public pages. Views stay thin: data comes from selectors and services."""
 
+import math
 import re
 
 from django.conf import settings
@@ -33,6 +34,19 @@ PROCESS_STEPS = [
 ]
 
 
+def marquee(techs):
+    """Technology names repeated enough to fill a wide screen, for the scrolling band.
+
+    Returns ([(name, is_repeat), ...], seconds per loop). Repeats are marked so
+    screen readers and the reduced-motion layout list each name once.
+    """
+    if not techs:
+        return [], 0
+    rounds = max(2, math.ceil(24 / len(techs)))
+    items = [(tech, round_ > 0) for round_ in range(rounds) for tech in techs]
+    return items, round(len(items) * 2.6)
+
+
 def ledger_snapshot() -> dict:
     """Chain status for page chrome. Cached and short-timed so pages stay fast."""
     snapshot = cache.get("ledger_snapshot")
@@ -46,10 +60,14 @@ def ledger_snapshot() -> dict:
 @ensure_csrf_cookie
 def home(request):
     systems = public_systems()
+    techs = tech_summary(systems)
+    marquee_items, marquee_duration = marquee(techs)
     return render(request, "showcase/home.html", {
         "systems": systems[:6],
         "system_count": len(systems),
-        "techs": tech_summary(systems),
+        "techs": techs,
+        "marquee_items": marquee_items,
+        "marquee_duration": marquee_duration,
         "process_steps": PROCESS_STEPS,
         "chain": ledger_snapshot(),
     })

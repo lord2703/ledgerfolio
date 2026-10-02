@@ -5,7 +5,10 @@
 
   <section class="hero" aria-labelledby="hero-title">
     <div class="hero__copy">
-      <p class="eyebrow">{{ owner_title }}{% if owner_location %} &middot; {{ owner_location }}{% endif %}</p>
+      <p class="eyebrow">
+        <span>{{ owner_title }}</span>
+        {% if owner_location %}<span class="eyebrow__sep" aria-hidden="true">&middot;</span><span>{{ owner_location }}</span>{% endif %}
+      </p>
       <h1 class="hero__title" id="hero-title">
         <span class="line"><span>Systems built</span></span>
         <span class="line"><span>with care. <em>Receipts</em></span></span>
@@ -71,6 +74,16 @@
       {% endif %}
     </div>
   </section>
+
+  {% if marquee_items %}
+    <section class="marquee reveal" aria-labelledby="marquee-title" style="--duration: {{ marquee_duration }}s">
+      <h2 class="marquee__label" id="marquee-title">Technologies across the systems</h2>
+      <div class="marquee__track">
+        <ul class="marquee__list">{% for tech, repeat in marquee_items %}<li{% if repeat %} class="marquee__repeat" aria-hidden="true"{% endif %}>{{ tech }}</li>{% endfor %}</ul>
+        <ul class="marquee__list" aria-hidden="true">{% for tech, repeat in marquee_items %}<li>{{ tech }}</li>{% endfor %}</ul>
+      </div>
+    </section>
+  {% endif %}
 
   <section class="section" aria-labelledby="systems-title">
     <div class="section__head section__head--split reveal">

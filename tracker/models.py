@@ -214,7 +214,10 @@ class Payment(models.Model):
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"{self.amount:,.2f} for {self.project} on {self.date:%b %d, %Y}"
+        return (
+            f"{settings.CURRENCY_CODE} {self.amount:,.2f} for {self.project} "
+            f"on {self.date:%b} {self.date.day}, {self.date.year}"
+        )
 
     @property
     def receipt(self):

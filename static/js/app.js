@@ -121,6 +121,20 @@ function initNav() {
   }
 }
 
+/* ---------- Scroll state: firms up the header, hides the scroll hint --------------- */
+
+function initScrollState() {
+  let queued = false;
+  const update = () => {
+    root.classList.toggle('is-scrolled', window.scrollY > 24);
+    queued = false;
+  };
+  window.addEventListener('scroll', () => {
+    if (!queued) { queued = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  update();
+}
+
 /* ---------- Motion: reveal on scroll, count-up, card tilt ----------------------- */
 
 function initMotion() {
@@ -363,6 +377,7 @@ function initChat() {
 
 initPreferences();
 initNav();
+initScrollState();
 initMotion();
 initHelpers();
 initChat();

@@ -26,4 +26,23 @@
 {% endif %}
 {% endblock %}
 
-{% block nav-global %}{% endblock %}
+{% block nav-global %}
+{% if user.is_active and user.is_staff %}
+  {% url 'admin:index' as overview_url %}
+  {% url 'admin:tracker_project_changelist' as projects_url %}
+  {% url 'admin:tracker_payment_changelist' as payments_url %}
+  {% url 'admin:tracker_receipt_changelist' as receipts_url %}
+  {% url 'admin:tracker_client_changelist' as clients_url %}
+  {% url 'admin:tracker_lead_changelist' as leads_url %}
+  {% url 'admin:tracker_unansweredquestion_changelist' as questions_url %}
+  <nav class="lf-nav" aria-label="Tracker sections">
+    <a href="{{ overview_url }}" {% if request.path == overview_url %}aria-current="page"{% endif %}>Overview</a>
+    <a href="{{ projects_url }}" {% if projects_url in request.path %}aria-current="page"{% endif %}>Projects</a>
+    <a href="{{ payments_url }}" {% if payments_url in request.path %}aria-current="page"{% endif %}>Payments</a>
+    <a href="{{ receipts_url }}" {% if receipts_url in request.path %}aria-current="page"{% endif %}>Receipts</a>
+    <a href="{{ clients_url }}" {% if clients_url in request.path %}aria-current="page"{% endif %}>Clients</a>
+    <a href="{{ leads_url }}" {% if leads_url in request.path %}aria-current="page"{% endif %}>Inquiries</a>
+    <a href="{{ questions_url }}" {% if questions_url in request.path %}aria-current="page"{% endif %}>Assistant log</a>
+  </nav>
+{% endif %}
+{% endblock %}

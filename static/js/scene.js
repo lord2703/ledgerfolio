@@ -143,15 +143,23 @@ function addLights(stage) {
   stage.scene.add(ambient, key, warm, cool);
 }
 
+const WHITE = new THREE.Color('#ffffff');
+// On a light page the secondary accents are saturated mid-tones that look
+// heavy as solid 3D surfaces, so they are lifted toward white there.
+const SOFTEN_ON_LIGHT = { accent2: 0.38, accent3: 0.38 };
+
 function solid(stage, role, { glow = 0, ...options } = {}) {
   const material = new THREE.MeshStandardMaterial({
     metalness: 0.35, roughness: 0.32, flatShading: true, ...options,
   });
-  stage.tint(material, role);
-  if (glow) {
-    material.emissiveIntensity = glow;
-    stage.tint(material, role, 'emissive');
-  }
+  stage.painters.push((palette) => {
+    material.color.copy(palette[role]);
+    if (palette.light && SOFTEN_ON_LIGHT[role]) material.color.lerp(WHITE, SOFTEN_ON_LIGHT[role]);
+    if (glow) {
+      material.emissive.copy(material.color);
+      material.emissiveIntensity = palette.light ? glow * 0.5 : glow;
+    }
+  });
   return material;
 }
 
@@ -204,7 +212,8 @@ function dust(stage, count, spread, seed, size = 0.07) {
 
 function buildBackdrop(canvas) {
   const stage = new Stage(canvas, { fov: 50, distance: 10 });
-  const field = dust(stage, 900, (random) => [
+  const count = window.innerWidth < 720 ? 420 : 900;  // lighter on phones
+  const field = dust(stage, count, (random) => [
     (random() - 0.5) * 34, (random() - 0.5) * 22, (random() - 0.5) * 18 - 4,
   ], 20260101, 0.09);
   stage.scene.add(field);
