@@ -93,6 +93,16 @@ def issuer_public_key() -> str:
     return issuer_wallet().public_key_hex
 
 
+def trusted_issuer_keys() -> set:
+    """Public keys whose signatures count as the issuer's.
+
+    The current wallet plus any retired ones listed in
+    ISSUER_PREVIOUS_PUBLIC_KEYS, so receipts signed before a key change
+    keep verifying.
+    """
+    return {issuer_public_key(), *settings.ISSUER_PREVIOUS_PUBLIC_KEYS}
+
+
 # ----------------------------------------------------------------------
 # Anchoring
 # ----------------------------------------------------------------------
@@ -244,7 +254,7 @@ def verify(receipt, client: NodeClient | None = None) -> Verification:
     try:
         info = client.get_transaction(receipt.tx_id)
         validation = client.validate()
-        expected_signer = issuer_public_key()
+        trusted_signers = trusted_issuer_keys()
     except (NodeUnavailable, NodeRejected, LedgerError) as exc:
         logger.warning("Verification of %s could not reach the ledger: %s", receipt, exc)
         return finish(
@@ -278,7 +288,7 @@ def verify(receipt, client: NodeClient | None = None) -> Verification:
         signature_check.passed = False
         signature_check.detail = f"The transaction is not valid: {exc}."
     else:
-        signature_check.passed = tx.sender == expected_signer
+        signature_check.passed = tx.sender in trusted_signers
         signature_check.detail = (
             "The ECDSA signature is valid and belongs to the issuer's wallet."
             if signature_check.passed

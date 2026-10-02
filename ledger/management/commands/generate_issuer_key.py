@@ -19,8 +19,9 @@ class Command(BaseCommand):
             "--path", default=str(DEFAULT_PATH), help=f"Where to save the key (default: {DEFAULT_PATH})"
         )
         parser.add_argument(
-            "--force", action="store_true", help="Overwrite an existing key file (old receipts "
-            "will no longer verify as signed by the issuer)"
+            "--force", action="store_true", help="Overwrite an existing key file. Receipts signed "
+            "with the old key only keep verifying if you add the old public key to "
+            "ISSUER_PREVIOUS_PUBLIC_KEYS in .env first."
         )
 
     def handle(self, *args, **options):

@@ -160,6 +160,8 @@ CHAIN_CONFIRM_TIMEOUT = env.float("CHAIN_CONFIRM_TIMEOUT", default=10.0)
 # never log it, and back it up: without it no new receipts can be signed.
 ISSUER_PRIVATE_KEY = env("ISSUER_PRIVATE_KEY", default="")
 ISSUER_KEY_FILE = env("ISSUER_KEY_FILE", default="")
+# Public keys of retired issuer wallets. Receipts they signed keep verifying.
+ISSUER_PREVIOUS_PUBLIC_KEYS = env.list("ISSUER_PREVIOUS_PUBLIC_KEYS", default=[])
 
 # --- AI assistant ----------------------------------------------------------
 AI_ARTIFACTS_DIR = BASE_DIR / "ai" / "artifacts"

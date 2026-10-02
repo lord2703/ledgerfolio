@@ -33,6 +33,9 @@ class IntentModel:
 
     @classmethod
     def load(cls, artifacts_dir=ARTIFACTS_DIR) -> "IntentModel":
+        # A model this small answers in about a millisecond on one thread;
+        # extra threads would only compete with the web server's own.
+        torch.set_num_threads(1)
         artifacts_dir = Path(artifacts_dir)
         try:
             meta = json.loads((artifacts_dir / "meta.json").read_text(encoding="utf-8"))

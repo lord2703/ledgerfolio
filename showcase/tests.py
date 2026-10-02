@@ -1,16 +1,23 @@
 import datetime
+import io
 import json
+import shutil
+import tempfile
 from decimal import Decimal
 from unittest import skipUnless
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client as Browser
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from ledger.testing import LocalNodeMixin
-from tracker.models import Client, Lead, Payment, Project, Receipt, UnansweredQuestion
+from tracker.models import (
+    Client, Lead, Payment, Project, ProjectScreenshot, Receipt, UnansweredQuestion,
+)
 from tracker.services import receipts as receipt_service
 
 from .selectors import public_system, public_systems
@@ -100,6 +107,49 @@ class ShowcasePrivacyTests(LedgerBackedTestCase):
         for url in self.pages():
             self.assertEqual(self.client.get(url).status_code, 200, url)
         self.assertContains(self.client.get(reverse("showcase:ledger")), "offline")
+
+
+def picture(name: str) -> SimpleUploadedFile:
+    buffer = io.BytesIO()
+    Image.new("RGB", (16, 10), "#e2b867").save(buffer, format="PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
+class ScreenshotTests(LedgerBackedTestCase):
+    """Pictures are added to a project in the Tracker and shown on the Showcase."""
+
+    def setUp(self):
+        super().setUp()
+        media = tempfile.mkdtemp(prefix="ledgerfolio-media-")
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        overrides = override_settings(MEDIA_ROOT=media)
+        overrides.enable()
+        self.addCleanup(overrides.disable)
+
+    def test_screenshots_appear_on_the_card_and_the_system_page(self):
+        ProjectScreenshot.objects.create(
+            project=self.public, image=picture("dashboard.png"), caption="Visits dashboard", order=2
+        )
+        ProjectScreenshot.objects.create(
+            project=self.public, image=picture("login.png"), caption="Login page", order=1
+        )
+        listing = self.client.get(reverse("showcase:system_list")).content.decode()
+        cover = listing.split('class="card__cover"', 1)[1][:400]
+        self.assertIn("/media/projects/", cover)
+        self.assertIn("login", cover)  # the lowest order number is the card picture
+
+        detail = self.client.get(
+            reverse("showcase:system_detail", args=[self.public.slug])
+        ).content.decode()
+        self.assertIn("dashboard", detail)
+        self.assertLess(detail.index("Login page"), detail.index("Visits dashboard"))
+
+    def test_private_projects_pictures_stay_private(self):
+        ProjectScreenshot.objects.create(
+            project=self.private, image=picture("payroll.png"), caption="Payroll screen"
+        )
+        for name in ("showcase:home", "showcase:system_list"):
+            self.assertNotContains(self.client.get(reverse(name)), "Payroll screen")
 
 
 class VerifyPageTests(LedgerBackedTestCase):

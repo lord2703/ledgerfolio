@@ -181,6 +181,18 @@ class AnchorAndVerifyTests(LocalNodeMixin, TestCase):
         self.assertTrue(self.check("ledger", result).passed)
         self.assertFalse(self.check("signature", result).passed)
 
+    def test_receipts_signed_with_a_retired_key_still_verify_when_listed(self):
+        receipt = self.anchor()
+        old_public_key = self.issuer.public_key_hex
+        new_wallet = Wallet.generate()
+        services._wallet_cache.clear()
+        with self.settings(ISSUER_PRIVATE_KEY=new_wallet.private_hex()):
+            # Key replaced but the old one not listed: the old signature is untrusted.
+            self.assertEqual(services.verify(receipt).state, services.TAMPERED)
+            services._wallet_cache.clear()
+            with self.settings(ISSUER_PREVIOUS_PUBLIC_KEYS=[old_public_key]):
+                self.assertEqual(services.verify(receipt).state, services.VALID)
+
     def test_edited_block_makes_the_chain_invalid(self):
         receipt = self.anchor()
         other = Transaction.create(self.issuer, {"type": "receipt", "data_hash": "ab" * 32})

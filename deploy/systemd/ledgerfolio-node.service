@@ -1,0 +1,18 @@
+# The blockchain node. Reads its CHAIN_* settings from /srv/ledgerfolio/.env.
+#   sudo cp deploy/systemd/ledgerfolio-node.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now ledgerfolio-node
+
+[Unit]
+Description=Ledgerfolio blockchain node
+After=network.target
+
+[Service]
+User=ledgerfolio
+Group=ledgerfolio
+WorkingDirectory=/srv/ledgerfolio
+ExecStart=/srv/ledgerfolio/.venv/bin/python -m chain_node
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

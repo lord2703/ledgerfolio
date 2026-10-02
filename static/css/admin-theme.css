@@ -204,8 +204,11 @@ fieldset.module { padding-bottom: 6px; }
 fieldset .description, .module .description { padding: 10px 16px 0; color: var(--body-quiet-color); }
 
 input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="number"],
-input[type="tel"], textarea, select, .vTextField { border-radius: 9px; padding: 8px 11px; border-color: var(--border-color);
+input[type="tel"], textarea, .vTextField { border-radius: 9px; padding: 8px 11px; border-color: var(--border-color);
   background: var(--lf-surface); }
+/* Django gives dropdowns a fixed height, so padding would clip their text. */
+select { border-radius: 9px; height: 2.35rem; padding: 0 8px; border-color: var(--border-color);
+  background-color: var(--lf-surface); }
 input:focus, textarea:focus, select:focus { border-color: var(--lf-gold); outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--lf-gold) 25%, transparent); }
 
