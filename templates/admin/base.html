@@ -1,0 +1,135 @@
+{% load i18n static %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as LANGUAGE_BIDI %}
+{# The Tracker's page shell. Replaces Django admin's base.html but keeps every #}
+{# block Django's own templates rely on, so all built-in admin pages still work. #}
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}">
+<head>
+<title>{% block title %}{% endblock %}</title>
+<link rel="stylesheet" href="{% block stylesheet %}{% static "admin/css/base.css" %}{% endblock %}">
+{% block dark-mode-vars %}
+  <link rel="stylesheet" href="{% static "admin/css/dark_mode.css" %}">
+  <script src="{% static "admin/js/theme.js" %}"></script>
+{% endblock %}
+{% block extrastyle %}{% endblock %}
+{% if LANGUAGE_BIDI %}<link rel="stylesheet" href="{% block stylesheet_rtl %}{% static "admin/css/rtl.css" %}{% endblock %}">{% endif %}
+{% block extrahead %}{% endblock %}
+{% block responsive %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static "admin/css/responsive.css" %}">
+    {% if LANGUAGE_BIDI %}<link rel="stylesheet" href="{% static "admin/css/responsive_rtl.css" %}">{% endif %}
+{% endblock %}
+{% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE">{% endblock %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+{# Loaded last so the Tracker theme wins over Django's stylesheets. #}
+<link rel="stylesheet" href="{% static 'css/tracker.css' %}">
+<link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+<script src="{% static 'js/tracker.js' %}" defer></script>
+</head>
+
+<body class="lf {% if is_popup %}popup {% endif %}{% if not is_popup and user.is_active and user.is_staff %}lf-app{% else %}lf-bare{% endif %} {% block bodyclass %}{% endblock %}"
+  data-admin-utc-offset="{% now "Z" %}">
+<a href="#content-start" class="skip-to-content-link">{% translate 'Skip to main content' %}</a>
+{% include "admin/includes/lf_icons.html" %}
+
+{% if not is_popup and user.is_active and user.is_staff %}
+  {% block lf-sidebar %}{% include "admin/includes/lf_sidebar.html" %}{% endblock %}
+  <div class="lf-backdrop" data-nav-close aria-hidden="true"></div>
+{% endif %}
+
+<div id="container">
+    {% if not is_popup and user.is_active and user.is_staff %}
+    {% block header %}
+      <header id="header" class="lf-topbar">
+        <button type="button" class="lf-icon-btn lf-topbar__menu" data-nav-open aria-controls="lf-sidebar" aria-expanded="false" aria-label="Open navigation">
+          <svg class="lf-i" aria-hidden="true"><use href="#lf-i-menu"/></svg>
+        </button>
+        <a class="lf-topbar__brand" href="{% url 'admin:index' %}" aria-label="Overview">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M16 3.5 26.8 9.75v12.5L16 28.5 5.2 22.25V9.75z"/><path d="M16 10 21.2 13v6L16 22l-5.2-3v-6z" fill="currentColor" fill-opacity=".22"/></svg>
+          <span>{{ site_header|default:"Ledgerfolio Tracker"|cut:" Tracker" }}</span>
+        </a>
+        <div id="branding" hidden>{% block branding %}{% endblock %}</div>
+        {% block nav-breadcrumbs %}
+          <nav class="lf-crumbs" aria-label="{% translate 'Breadcrumbs' %}">
+            {% block breadcrumbs %}
+              <div class="breadcrumbs">
+                <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+                {% if title %} &rsaquo; {{ title }}{% endif %}
+              </div>
+            {% endblock %}
+          </nav>
+        {% endblock %}
+
+        <div class="lf-topbar__tools">
+          <form class="lf-search lf-topbar__search" action="{% url 'tracker_search' %}" method="get" role="search">
+            <svg class="lf-i" aria-hidden="true"><use href="#lf-i-search"/></svg>
+            <label class="sr-only" for="lf-top-search">Search the Tracker</label>
+            <input id="lf-top-search" type="search" name="q" value="{{ query|default:'' }}" placeholder="Search clients, projects, receipts…" autocomplete="off">
+            <kbd aria-hidden="true">/</kbd>
+          </form>
+          <a class="lf-icon-btn" href="{{ site_url|default:'/' }}" target="_blank" rel="noopener" title="Open the public site" aria-label="Open the public site">
+            <svg class="lf-i" aria-hidden="true"><use href="#lf-i-globe"/></svg>
+          </a>
+          {% include "admin/color_theme_toggle.html" %}
+          {% block usertools %}
+          {% if has_permission %}
+          <details class="lf-user">
+            <summary aria-label="Account menu">
+              <span class="lf-avatar" aria-hidden="true">{% firstof user.get_short_name user.get_username as display_name %}{{ display_name|slice:":1"|upper }}</span>
+              <span class="lf-user__name">{% firstof user.get_short_name user.get_username %}</span>
+              <svg class="lf-i lf-user__chev" aria-hidden="true"><use href="#lf-i-chevron"/></svg>
+            </summary>
+            <div class="lf-menu" role="menu">
+              <div class="lf-menu__head">
+                <span class="lf-avatar lf-avatar--lg" aria-hidden="true">{% firstof user.get_short_name user.get_username as display_name %}{{ display_name|slice:":1"|upper }}</span>
+                <span><strong>{% firstof user.get_short_name user.get_username %}</strong><small>{% if user.is_superuser %}Administrator{% else %}Staff{% endif %}</small></span>
+              </div>
+              <a class="lf-menu__item" role="menuitem" href="{{ site_url|default:'/' }}" target="_blank" rel="noopener"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-globe"/></svg>View public site</a>
+              {% if user.has_usable_password %}
+              <a class="lf-menu__item" role="menuitem" href="{% url 'admin:password_change' %}"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-key"/></svg>Change password</a>
+              {% endif %}
+              <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="lf-menu__item lf-menu__item--danger" role="menuitem"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-logout"/></svg>Log out</button>
+              </form>
+            </div>
+          </details>
+          {% endif %}
+          {% endblock %}
+          {% block nav-global %}{% endblock %}
+        </div>
+      </header>
+    {% endblock %}
+    {% endif %}
+
+    <div class="main" id="main">
+      <main id="content-start" class="content" tabindex="-1">
+        {% block messages %}
+          {% if messages %}
+            <ul class="messagelist">{% for message in messages %}
+              <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>
+            {% endfor %}</ul>
+          {% endif %}
+        {% endblock messages %}
+        <div id="content" class="{% block coltype %}colM{% endblock %}">
+          <div class="lf-page-head">
+            {% block pretitle %}{% endblock %}
+            {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+            {% block content_subtitle %}{% if subtitle %}<h2>{{ subtitle }}</h2>{% endif %}{% endblock %}
+            {% if page_description %}<p class="lf-page-desc">{{ page_description }}</p>{% endif %}
+          </div>
+          {% block content %}
+            {% block object-tools %}{% endblock %}
+            {{ content }}
+          {% endblock %}
+          {% block sidebar %}{% endblock %}
+          <br class="clear">
+        </div>
+      </main>
+    </div>
+    <footer id="footer">{% block footer %}{% endblock %}</footer>
+</div>
+{% block extrabody %}{% endblock extrabody %}
+</body>
+</html>

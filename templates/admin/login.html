@@ -1,0 +1,77 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{% if form.errors %}{% translate "Error:" %} {% endif %}Sign in · {{ site_title }}{% endblock %}
+{% block bodyclass %}{{ block.super }} login lf-auth-page{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="lf-auth">
+  <aside class="lf-auth__brand" aria-hidden="true">
+    <div class="lf-auth__logo">
+      <span class="lf-brand__mark"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M16 3.5 26.8 9.75v12.5L16 28.5 5.2 22.25V9.75z"/><path d="M16 10 21.2 13v6L16 22l-5.2-3v-6z" fill="currentColor" fill-opacity=".22"/></svg></span>
+      <span>{{ site_header|default:"Ledgerfolio Tracker" }}</span>
+    </div>
+    <div class="lf-auth__pitch">
+      <h2>Your freelance desk, <em>sealed on your own ledger.</em></h2>
+      <ul>
+        <li><svg class="lf-i"><use href="#lf-i-check"/></svg>Clients, projects and balances in one place</li>
+        <li><svg class="lf-i"><use href="#lf-i-check"/></svg>Receipts signed and recorded on your blockchain</li>
+        <li><svg class="lf-i"><use href="#lf-i-check"/></svg>Inquiries from your Portfolio Assistant</li>
+      </ul>
+    </div>
+    <p class="lf-auth__fine">Private area. Clients check their receipts through the public verify link.</p>
+    <svg class="lf-auth__art" viewBox="0 0 400 400" fill="none" stroke="currentColor">
+      <circle cx="200" cy="200" r="190" stroke-dasharray="2 10" opacity=".5"/>
+      <circle cx="200" cy="200" r="130" opacity=".35"/>
+      <path d="M200 70 312.6 135v130L200 330 87.4 265V135z" opacity=".55"/>
+      <path d="M200 140 252 170v60l-52 30-52-30v-60z" opacity=".8"/>
+    </svg>
+  </aside>
+
+  <section class="lf-auth__panel">
+    <div class="lf-auth__toggle">{% include "admin/color_theme_toggle.html" %}</div>
+    <div class="lf-auth__card">
+      <div class="lf-auth__mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M16 3.5 26.8 9.75v12.5L16 28.5 5.2 22.25V9.75z"/><path d="M16 10 21.2 13v6L16 22l-5.2-3v-6z" fill="currentColor" fill-opacity=".22"/></svg></div>
+      <h1>Sign in</h1>
+      <p class="lf-auth__lead">Welcome back. Sign in to manage your clients, payments and receipts.</p>
+
+      {% if form.errors and not form.non_field_errors %}
+        <p class="errornote">{% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}</p>
+      {% endif %}
+      {% for error in form.non_field_errors %}<p class="errornote">{{ error }}</p>{% endfor %}
+      {% if user.is_authenticated %}
+        <p class="errornote">{% blocktranslate trimmed %}You are authenticated as {{ username }}, but are not authorized to access this page. Would you like to login to a different account?{% endblocktranslate %}</p>
+      {% endif %}
+
+      <form action="{{ app_path }}" method="post" id="login-form" class="lf-auth__form">{% csrf_token %}
+        <div class="lf-field">
+          <label for="{{ form.username.id_for_label }}">Username</label>
+          {{ form.username.errors }}
+          {{ form.username }}
+        </div>
+        <div class="lf-field">
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password.errors }}
+          <div class="lf-password">
+            {{ form.password }}
+            <button type="button" class="lf-password__toggle" data-password-toggle aria-label="Show password" aria-pressed="false">
+              <svg class="lf-i lf-i--show" aria-hidden="true"><use href="#lf-i-eye"/></svg>
+              <svg class="lf-i lf-i--hide" aria-hidden="true"><use href="#lf-i-eye-off"/></svg>
+            </button>
+          </div>
+          <input type="hidden" name="next" value="{{ next }}">
+        </div>
+        {% url 'admin_password_reset' as password_reset_url %}
+        {% if password_reset_url %}<p class="lf-auth__reset"><a href="{{ password_reset_url }}">{% translate 'Forgotten your login credentials?' %}</a></p>{% endif %}
+        <button type="submit" class="lf-btn lf-btn--primary lf-btn--block">Sign in</button>
+      </form>
+    </div>
+    <p class="lf-auth__foot"><a href="{{ site_url|default:'/' }}"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-globe"/></svg>Back to the public site</a></p>
+  </section>
+</div>
+{% endblock %}

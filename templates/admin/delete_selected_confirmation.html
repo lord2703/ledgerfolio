@@ -1,0 +1,9 @@
+{% extends "admin/delete_selected_confirmation.html" %}
+{% load admin_urls %}
+
+{# Django's bulk delete page, plus a way back when the delete is not allowed. #}
+{% block content %}{{ block.super }}
+{% if perms_lacking or protected %}
+<p class="lf-back"><a class="button" href="{% url opts|admin_urlname:'changelist' %}">Back to {{ opts.verbose_name_plural }}</a></p>
+{% endif %}
+{% endblock %}

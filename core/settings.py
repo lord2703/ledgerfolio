@@ -20,7 +20,7 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 INSTALLED_APPS = [
     "django.contrib.admin",
-    "django.contrib.auth",
+    "core.apps.AccountsConfig",  # django.contrib.auth, shown as "Accounts"
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",

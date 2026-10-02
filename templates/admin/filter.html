@@ -1,0 +1,15 @@
+{# One list filter as a dropdown chip ("Status: In development ▾"). The first choice is always "All". #}
+<details class="lf-filter{% for choice in choices %}{% if choice.selected and not forloop.first %} is-active{% endif %}{% endfor %}">
+  <summary>
+    <span class="lf-filter__title">{{ title|capfirst }}</span>
+    {% for choice in choices %}{% if choice.selected and not forloop.first %}<span class="lf-filter__value">{{ choice.display }}</span>{% endif %}{% endfor %}
+    <svg class="lf-i" aria-hidden="true"><use href="#lf-i-chevron"/></svg>
+  </summary>
+  <ul class="lf-filter__menu">
+  {% for choice in choices %}
+    <li{% if choice.selected %} class="selected"{% endif %}>
+      <a href="{{ choice.query_string|iriencode }}"{% if choice.selected %} aria-current="true"{% endif %}>{{ choice.display }}</a>
+    </li>
+  {% endfor %}
+  </ul>
+</details>

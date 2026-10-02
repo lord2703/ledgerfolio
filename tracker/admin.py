@@ -1,6 +1,8 @@
 """The Tracker's interface: Django admin, tuned for a one-person freelance desk."""
 
 from django.contrib import admin, messages
+from django.contrib.auth.admin import GroupAdmin, UserAdmin
+from django.contrib.auth.models import Group, User
 from django.db.models import Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
@@ -9,39 +11,54 @@ from django.utils.html import format_html, format_html_join
 
 from ledger import services as ledger
 
-from .models import Client, Lead, Payment, Project, ProjectScreenshot, Receipt, UnansweredQuestion
+from .models import (
+    Client,
+    Lead,
+    Payment,
+    Project,
+    ProjectScreenshot,
+    Receipt,
+    UnansweredQuestion,
+    shorten,
+)
 from .services import leads as lead_service
 from .services import receipts as receipt_service
 from .services.pdf import money
+from .ui import amount, badge, entity, lead_badge, ledger_badge, project_badge
 
 
-def badge(label, tone):
-    """A small status pill. Tone picks the colour; the label always carries the meaning."""
-    return format_html('<span class="lf-badge lf-badge--{}">{}</span>', tone, label)
+class TrackerAdminMixin:
+    """Page titles, descriptions and form details shared by every Tracker screen."""
 
+    page_title = None  # list page heading; defaults to the plural model name
+    page_description = ""  # one line under the heading
+    list_per_page = 25
 
-def amount(value):
-    """Money that never wraps across two lines in a table cell."""
-    return format_html('<span class="lf-money">{}</span>', money(value))
+    def changelist_view(self, request, extra_context=None):
+        context = {
+            "title": self.page_title or self.opts.verbose_name_plural.capitalize(),
+            "page_description": self.page_description,
+            **(extra_context or {}),
+        }
+        return super().changelist_view(request, context)
 
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        context = dict(extra_context or {})
+        if object_id and self.has_change_permission(request):
+            context.setdefault("title", f"Edit {self.opts.verbose_name}")
+        return super().changeform_view(request, object_id, form_url, context)
 
-STATUS_TONES = {
-    Project.Status.IN_DEVELOPMENT: "info",
-    Project.Status.READY_FOR_PRE_ORAL: "warn",
-    Project.Status.READY_FOR_FINAL: "accent",
-    Project.Status.FULLY_PAID: "good",
-}
-LEDGER_TONES = {
-    Receipt.LedgerStatus.UNANCHORED: "bad",
-    Receipt.LedgerStatus.PENDING: "warn",
-    Receipt.LedgerStatus.CONFIRMED: "good",
-}
-LEAD_TONES = {
-    Lead.Status.NEW: "accent",
-    Lead.Status.CONTACTED: "info",
-    Lead.Status.CONVERTED: "good",
-    Lead.Status.DROPPED: "muted",
-}
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+
+        class Form(form):
+            # "Client" rather than "Client:": the labels sit above their fields.
+            def __init__(self, *args, **options):
+                options.setdefault("label_suffix", "")
+                super().__init__(*args, **options)
+
+        Form.__name__ = form.__name__
+        return Form
 
 
 # ----------------------------------------------------------------------
@@ -50,7 +67,7 @@ LEAD_TONES = {
 
 class ClientProjectInline(admin.TabularInline):
     model = Project
-    fields = ("project_link", "status", "total_price", "paid", "owed", "deadline")
+    fields = ("project_link", "status_badge", "price", "paid", "owed", "deadline")
     readonly_fields = fields
     extra = 0
     can_delete = False
@@ -68,6 +85,14 @@ class ClientProjectInline(admin.TabularInline):
         url = reverse("admin:tracker_project_change", args=[obj.pk])
         return format_html('<a href="{}">{}</a>', url, obj.system_name)
 
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        return project_badge(obj)
+
+    @admin.display(description="Total price")
+    def price(self, obj):
+        return amount(obj.total_price)
+
     @admin.display(description="Paid so far")
     def paid(self, obj):
         return amount(obj.paid_so_far)
@@ -78,13 +103,22 @@ class ClientProjectInline(admin.TabularInline):
 
 
 @admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "phone", "project_count", "created_at")
+class ClientAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_description = "The people and schools you build systems for."
+    list_display = ("client", "phone", "project_count", "created_at")
     search_fields = ("name", "email", "phone", "other_contact")
     inlines = [ClientProjectInline]
+    fieldsets = (
+        ("Contact", {"fields": ("name", ("email", "phone"), "other_contact")}),
+        ("Notes", {"fields": ("notes",)}),
+    )
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(project_total=Count("projects"))
+
+    @admin.display(description="Client", ordering="name")
+    def client(self, obj):
+        return entity(obj.name, obj.email or obj.other_contact)
 
     @admin.display(description="Projects", ordering="project_total")
     def project_count(self, obj):
@@ -114,8 +148,15 @@ class PaymentInline(admin.TabularInline):
 
 class ScreenshotInline(admin.TabularInline):
     model = ProjectScreenshot
-    fields = ("image", "caption", "order")
+    fields = ("preview", "image", "caption", "order")
+    readonly_fields = ("preview",)
     extra = 0
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj.pk or not obj.image:
+            return "-"
+        return format_html('<img class="lf-thumb" src="{}" alt="">', obj.image.url)
 
 
 class BalanceFilter(admin.SimpleListFilter):
@@ -134,10 +175,9 @@ class BalanceFilter(admin.SimpleListFilter):
 
 
 @admin.register(Project)
-class ProjectAdmin(admin.ModelAdmin):
-    list_display = (
-        "system_name", "client", "status_badge", "price", "paid", "owed", "deadline", "is_public",
-    )
+class ProjectAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_description = "Every system you're building or have delivered, and what's been paid."
+    list_display = ("project", "status_badge", "price", "paid", "owed", "deadline", "public")
     list_filter = ("status", BalanceFilter, "is_public", "deadline")
     search_fields = ("system_name", "client__name", "tech_stack", "notes")
     autocomplete_fields = ("client",)
@@ -148,23 +188,33 @@ class ProjectAdmin(admin.ModelAdmin):
     actions = ["show_on_showcase", "hide_from_showcase"]
     readonly_fields = ("money_summary",)
     fieldsets = (
-        ("Tracker (private)", {
-            "fields": ("client", "system_name", "total_price", "money_summary", "status",
-                       "deadline", "notes"),
+        ("Project", {
+            "description": "Private. Only you see this part.",
+            "fields": (("system_name", "client"), ("total_price", "status", "deadline"),
+                       "money_summary", "notes"),
         }),
-        ("Showcase (public when switched on)", {
-            "description": "Only these fields are ever shown on the public site.",
-            "fields": ("is_public", "slug", "tagline", "tech_stack", "objectives", "purpose",
-                       "preview_style"),
+        ("Showcase", {
+            "description": "Switch it on to show these fields on the public site. Client, price, "
+                           "payments and notes are never shown there.",
+            "fields": ("is_public", ("tagline", "preview_style"), "tech_stack", "objectives",
+                       "purpose", "slug"),
         }),
     )
 
     def get_queryset(self, request):
         return super().get_queryset(request).with_totals().select_related("client")
 
+    @admin.display(description="Project", ordering="system_name")
+    def project(self, obj):
+        return entity(obj.system_name, obj.client.name)
+
     @admin.display(description="Status", ordering="status")
     def status_badge(self, obj):
-        return badge(obj.get_status_display(), STATUS_TONES.get(obj.status, "muted"))
+        return project_badge(obj)
+
+    @admin.display(description="Public", boolean=True, ordering="is_public")
+    def public(self, obj):
+        return obj.is_public
 
     @admin.display(description="Total price", ordering="total_price")
     def price(self, obj):
@@ -236,13 +286,17 @@ def report_outcome(modeladmin, request, payment, outcome):
 
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_description = "Every payment received. Select payments, then choose “Generate and send receipt”."
     list_display = ("date", "project", "client_name", "amount_display", "method", "receipt_state")
     list_filter = ("method", "date")
     search_fields = ("project__system_name", "project__client__name", "reference", "note")
     autocomplete_fields = ("project",)
     date_hierarchy = "date"
     actions = ["generate_and_send_receipt", "generate_receipt_without_email"]
+    fieldsets = (
+        (None, {"fields": ("project", ("amount", "date"), ("method", "reference"), "note")}),
+    )
 
     def get_queryset(self, request):
         return (
@@ -267,8 +321,8 @@ class PaymentAdmin(admin.ModelAdmin):
         receipt = receipts[0]
         url = reverse("admin:tracker_receipt_change", args=[receipt.pk])
         return format_html(
-            '<a href="{}">{}</a> {}', url, receipt.receipt_number,
-            badge(receipt.get_ledger_status_display(), LEDGER_TONES[receipt.ledger_status]),
+            '<span class="lf-stack"><a href="{}">{}</a>{}</span>', url, receipt.receipt_number,
+            ledger_badge(receipt),
         )
 
     def _issue(self, request, queryset, send_email):
@@ -286,10 +340,11 @@ class PaymentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Receipt)
-class ReceiptAdmin(admin.ModelAdmin):
+class ReceiptAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_description = "Issued receipts and whether each one is sealed on the ledger."
     list_display = (
         "receipt_number", "client_name", "system_name", "amount_display", "issued_at",
-        "ledger_badge", "emailed_at",
+        "ledger_status_badge", "emailed_at",
     )
     list_filter = ("ledger_status", "document_type", "issued_at")
     search_fields = ("receipt_number", "client_name", "system_name", "tx_id")
@@ -297,20 +352,17 @@ class ReceiptAdmin(admin.ModelAdmin):
     actions = ["anchor_on_ledger", "resend_email", "regenerate_pdf"]
     readonly_fields = ("verify_link", "pdf_link", "integrity", "amount_display", "balance_display")
     fieldsets = (
-        (None, {"fields": ("receipt_number", "document_type", "issued_at", "payment")}),
-        ("Share with the client", {"fields": ("verify_link", "pdf_link", "emailed_to", "emailed_at")}),
+        ("Share with the client", {"fields": ("verify_link", "pdf_link", ("emailed_to", "emailed_at"))}),
         ("What the receipt says", {
-            "fields": ("client_name", "system_name", "amount_display", "balance_display",
-                       "payment_method", "payment_date"),
+            "fields": (("receipt_number", "document_type"), ("client_name", "system_name"),
+                       ("amount_display", "balance_display"), ("payment_method", "payment_date"),
+                       ("issued_at", "payment")),
         }),
         ("Blockchain", {
-            "fields": ("integrity", "ledger_status", "content_hash", "tx_id", "block_index",
+            "fields": ("integrity", ("ledger_status", "block_index"), "content_hash", "tx_id",
                        "block_hash"),
         }),
     )
-
-    class Media:
-        js = ("js/admin.js",)
 
     # A receipt is a point-in-time document: it is issued from a payment and
     # then never edited. To correct one, delete it and issue a new receipt.
@@ -355,14 +407,14 @@ class ReceiptAdmin(admin.ModelAdmin):
         return amount(obj.balance_after)
 
     @admin.display(description="Ledger", ordering="ledger_status")
-    def ledger_badge(self, obj):
-        return badge(obj.get_ledger_status_display(), LEDGER_TONES[obj.ledger_status])
+    def ledger_status_badge(self, obj):
+        return ledger_badge(obj)
 
     @admin.display(description="Verify link")
     def verify_link(self, obj):
         return format_html(
-            '<a href="{0}" target="_blank" rel="noopener">{0}</a> '
-            '<button type="button" class="button lf-copy" data-copy="{0}">Copy link</button>',
+            '<span class="lf-copyfield"><a href="{0}" target="_blank" rel="noopener">{0}</a>'
+            '<button type="button" class="button lf-copy" data-copy="{0}">Copy link</button></span>',
             obj.verify_url,
         )
 
@@ -378,13 +430,14 @@ class ReceiptAdmin(admin.ModelAdmin):
             ledger.VALID: "good", ledger.PENDING: "warn",
             ledger.TAMPERED: "bad", ledger.UNAVAILABLE: "muted",
         }[result.state]
-        marks = {True: "Passed", False: "FAILED", None: "Not checked"}
+        marks = {True: ("pass", "Passed"), False: ("fail", "Failed"), None: ("skip", "Not checked")}
         rows = format_html_join(
-            "", "<li><strong>{}:</strong> {} <em>{}</em></li>",
-            ((marks[check.passed], check.label, check.detail) for check in result.checks),
+            "", '<li class="lf-check lf-check--{}"><span class="lf-check__mark">{}</span>'
+                '<span><strong>{}</strong><em>{}</em></span></li>',
+            ((*marks[check.passed], check.label, check.detail) for check in result.checks),
         )
         return format_html(
-            '{} <span>{}</span><ul class="lf-checks">{}</ul>',
+            '<div class="lf-integrity"><p>{} <span>{}</span></p><ul class="lf-checks">{}</ul></div>',
             badge(result.state.title(), tone), result.summary, rows,
         )
 
@@ -430,25 +483,34 @@ class ReceiptAdmin(admin.ModelAdmin):
 
 
 # ----------------------------------------------------------------------
-# Leads and assistant log
+# Inquiries and assistant log
 # ----------------------------------------------------------------------
 
 @admin.register(Lead)
-class LeadAdmin(admin.ModelAdmin):
-    list_display = ("name", "contact", "idea", "budget", "deadline", "status_badge", "source",
-                    "created_at")
+class LeadAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_description = "Requests from the Portfolio Assistant, and ones you add yourself."
+    list_display = ("person", "idea", "budget", "deadline", "status_badge", "source", "created_at")
     list_filter = ("status", "source", "created_at")
     search_fields = ("name", "contact", "system_idea")
     readonly_fields = ("created_at", "converted_project")
     actions = ["convert", "mark_contacted", "mark_dropped"]
+    fieldsets = (
+        ("Who", {"fields": (("name", "contact"),)}),
+        ("What they need", {"fields": ("system_idea", ("budget", "deadline"))}),
+        ("Follow-up", {"fields": (("status", "source"), "notes", ("converted_project", "created_at"))}),
+    )
+
+    @admin.display(description="Inquiry", ordering="name")
+    def person(self, obj):
+        return entity(obj.name, obj.contact)
 
     @admin.display(description="System idea")
     def idea(self, obj):
-        return obj.system_idea if len(obj.system_idea) <= 70 else f"{obj.system_idea[:70]}…"
+        return shorten(obj.system_idea, 70)
 
     @admin.display(description="Status", ordering="status")
     def status_badge(self, obj):
-        return badge(obj.get_status_display(), LEAD_TONES.get(obj.status, "muted"))
+        return lead_badge(obj)
 
     @admin.action(description="Convert to client + project")
     def convert(self, request, queryset):
@@ -473,7 +535,12 @@ class LeadAdmin(admin.ModelAdmin):
 
 
 @admin.register(UnansweredQuestion)
-class UnansweredQuestionAdmin(admin.ModelAdmin):
+class UnansweredQuestionAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_title = "Assistant log"
+    page_description = (
+        "Questions the assistant wasn't sure about. Add good ones to ai/data/intents.json, "
+        "retrain, then tick “reviewed”."
+    )
     list_display = ("message", "predicted_intent", "confidence_percent", "reviewed", "created_at")
     list_filter = ("reviewed", "predicted_intent")
     list_editable = ("reviewed",)
@@ -485,6 +552,24 @@ class UnansweredQuestionAdmin(admin.ModelAdmin):
     @admin.display(description="Confidence", ordering="confidence")
     def confidence_percent(self, obj):
         return f"{obj.confidence:.0%}"
+
+
+# ----------------------------------------------------------------------
+# Accounts
+# ----------------------------------------------------------------------
+
+admin.site.unregister(User)
+admin.site.unregister(Group)
+
+
+@admin.register(User)
+class TrackerUserAdmin(TrackerAdminMixin, UserAdmin):
+    page_description = "Who can sign in to the Tracker."
+
+
+@admin.register(Group)
+class TrackerGroupAdmin(TrackerAdminMixin, GroupAdmin):
+    page_description = "Permission groups for Tracker accounts."
 
 
 admin.site.empty_value_display = "-"

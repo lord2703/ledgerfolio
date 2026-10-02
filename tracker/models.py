@@ -22,6 +22,14 @@ MONEY = {"max_digits": 12, "decimal_places": 2}
 ZERO = Decimal("0.00")
 
 
+def shorten(text: str, limit: int) -> str:
+    """`text` on one line, cut at a word with an ellipsis when it is too long."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(" ,.;:-") + "…"
+
+
 class PrivateStorage(FileSystemStorage):
     """Files on disk under PRIVATE_MEDIA_ROOT, with no public URL.
 
@@ -323,9 +331,11 @@ class Lead(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "inquiry"
+        verbose_name_plural = "inquiries"
 
     def __str__(self):
-        return f"{self.name}: {self.system_idea[:40]}"
+        return f"{self.name}: {shorten(self.system_idea, 40)}"
 
 
 class UnansweredQuestion(models.Model):
@@ -341,4 +351,4 @@ class UnansweredQuestion(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.message[:60]
+        return shorten(self.message, 60)

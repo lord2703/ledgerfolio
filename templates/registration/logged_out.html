@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Signed out · {{ site_title }}{% endblock %}
+{% block bodyclass %}{{ block.super }} lf-auth-page{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="lf-auth lf-auth--single">
+  <section class="lf-auth__panel">
+    <div class="lf-auth__card lf-auth__card--center">
+      <div class="lf-auth__mark" aria-hidden="true"><svg class="lf-i"><use href="#lf-i-check"/></svg></div>
+      <h1>You're signed out</h1>
+      <p class="lf-auth__lead">Your session has ended. Thanks for stopping by.</p>
+      <a class="lf-btn lf-btn--primary lf-btn--block" href="{% url 'admin:index' %}">Sign in again</a>
+    </div>
+    <p class="lf-auth__foot"><a href="{{ site_url|default:'/' }}"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-globe"/></svg>Back to the public site</a></p>
+  </section>
+</div>
+{% endblock %}

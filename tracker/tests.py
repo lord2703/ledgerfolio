@@ -1,6 +1,7 @@
 import datetime
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -211,7 +212,7 @@ class AdminTests(LocalNodeMixin, TestCase):
         dashboard = self.client.get(reverse("admin:index")).content.decode()
         self.assertIn("Outstanding balance", dashboard)
         self.assertIn("<small>PHP</small>7,000.00", dashboard)
-        self.assertIn("Online, chain intact", dashboard)
+        self.assertIn("Chain intact", dashboard)
 
     def test_dashboard_survives_the_node_being_down(self):
         self.node_online = False
@@ -261,6 +262,69 @@ class AdminTests(LocalNodeMixin, TestCase):
         response = self.client.get(reverse("admin:tracker_receipt_pdf", args=[receipt.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertIn("login", response["Location"])
+
+    def test_every_tracker_screen_renders(self):
+        receipt = receipt_service.generate_and_send(self.payment, send_email=False).receipt
+        lead = Lead.objects.create(name="Juan", contact="juan@example.com", system_idea="An enrollment system")
+        urls = [
+            reverse("admin:tracker_project_add"),
+            reverse("admin:tracker_project_change", args=[self.project.pk]),
+            reverse("admin:tracker_client_add"),
+            reverse("admin:tracker_client_change", args=[self.project.client.pk]),
+            reverse("admin:tracker_payment_add"),
+            reverse("admin:tracker_payment_change", args=[self.payment.pk]),
+            reverse("admin:tracker_receipt_change", args=[receipt.pk]),
+            reverse("admin:tracker_lead_add"),
+            reverse("admin:tracker_lead_change", args=[lead.pk]),
+            reverse("admin:auth_user_changelist"),
+            reverse("admin:auth_user_change", args=[self.admin.pk]),
+            reverse("admin:auth_group_changelist"),
+            reverse("admin:password_change"),
+            reverse("admin:tracker_project_delete", args=[self.project.pk]),
+            reverse("admin:tracker_project_history", args=[self.project.pk]),
+        ]
+        for url in urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, url)
+            self.assertContains(response, 'id="lf-sidebar"', msg_prefix=url)
+        edit = self.client.get(reverse("admin:tracker_project_change", args=[self.project.pk]))
+        self.assertContains(edit, "<h1>Edit project</h1>", html=False)
+        self.assertNotContains(edit, "System name:")  # labels sit above fields, no colons
+        projects = self.client.get(reverse("admin:tracker_project_changelist"))
+        self.assertContains(projects, "<h1>Projects</h1>", html=False)
+        self.assertContains(projects, 'class="lf-filter')
+
+    def test_search_finds_records_across_the_tracker(self):
+        receipt = receipt_service.generate_and_send(self.payment, send_email=False).receipt
+        Lead.objects.create(name="Juan Cruz", contact="juan@example.com", system_idea="An enrollment system")
+        url = reverse("tracker_search")
+        self.assertContains(self.client.get(url), "Find any project")
+        results = self.client.get(url, {"q": "clinic"})
+        for expected in ("Clinic Records System", "Projects", "Receipts", receipt.receipt_number):
+            self.assertContains(results, expected)
+        self.assertContains(self.client.get(url, {"q": "juan"}), "Juan Cruz")
+        self.assertContains(self.client.get(url, {"q": receipt.receipt_number}), "Confirmed in a block")
+        self.assertContains(self.client.get(url, {"q": "zzzz-nothing"}), "Nothing matches")
+
+    def test_search_and_dashboard_need_a_login(self):
+        self.client.logout()
+        for url in (reverse("tracker_search"), reverse("admin:index")):
+            response = self.client.get(url, {"q": "clinic"})
+            self.assertEqual(response.status_code, 302, url)
+            self.assertIn("login", response["Location"])
+        login = self.client.get(reverse("admin:login"))
+        self.assertContains(login, "Sign in")
+        self.assertNotContains(login, 'id="lf-sidebar"')
+
+    def test_app_index_pages_redirect_to_real_pages(self):
+        self.assertRedirects(self.client.get(f"/{settings.ADMIN_URL}tracker/"), reverse("admin:index"))
+        self.assertRedirects(
+            self.client.get(f"/{settings.ADMIN_URL}auth/"), reverse("admin:auth_user_changelist")
+        )
+
+    def test_logging_out_shows_the_signed_out_page(self):
+        response = self.client.post(reverse("admin:logout"))
+        self.assertContains(response, "You're signed out")
 
     def test_convert_lead_action(self):
         lead = Lead.objects.create(name="Juan", contact="juan@example.com", system_idea="An enrollment system")

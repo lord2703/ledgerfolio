@@ -1,92 +1,249 @@
-{% extends "admin/index.html" %}
+{% extends "admin/base_site.html" %}
 {% load tracker_dashboard %}
 
-{# The Tracker's home page: money and project status at a glance, above Django's own app list. #}
+{# The Tracker's home: money, work in progress and the ledger at a glance. #}
+{% block bodyclass %}{{ block.super }} lf-dashboard{% endblock %}
 {% block coltype %}colM{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><span>Overview</span></div>{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
 {% tracker_dashboard as dash %}
-<section class="lf-dash" aria-label="Overview">
-  <div class="lf-tiles">
-    <div class="lf-tile" style="--i:0">
-      <span class="lf-tile__label">Outstanding balance</span>
-      <span class="lf-tile__value lf-tile__value--hero"><small>{{ dash.currency }}</small>{{ dash.outstanding }}</span>
-      <span class="lf-tile__note">still owed across all projects</span>
+{% url 'admin:tracker_project_changelist' as projects_url %}
+{% url 'admin:tracker_payment_changelist' as payments_url %}
+{% url 'admin:tracker_receipt_changelist' as receipts_url %}
+{% url 'admin:tracker_lead_changelist' as leads_url %}
+<div id="content-main" class="lf-dash">
+
+  <header class="lf-hero">
+    <div class="lf-hero__text">
+      <p class="lf-eyebrow">{{ dash.today|date:"l, F j, Y" }}</p>
+      <h1>{{ dash.greeting }}, {{ dash.name }}</h1>
+      <p>{{ dash.summary }}</p>
     </div>
-    <div class="lf-tile" style="--i:1">
-      <span class="lf-tile__label">Collected so far</span>
-      <span class="lf-tile__value"><small>{{ dash.currency }}</small>{{ dash.collected }}</span>
-      <span class="lf-meter" role="img" aria-label="{{ dash.collected_percent }}% of contract value collected">
-        <span class="lf-meter__fill" style="width:{{ dash.collected_percent }}%"></span>
-      </span>
-      <span class="lf-tile__note">{{ dash.collected_percent }}% of {{ dash.contract }} contracted</span>
+    <div class="lf-hero__actions">
+      <a class="lf-btn" href="{% url 'admin:tracker_payment_add' %}"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-wallet"/></svg>Record payment</a>
+      <a class="lf-btn lf-btn--primary" href="{% url 'admin:tracker_project_add' %}"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-plus"/></svg>New project</a>
     </div>
-    <div class="lf-tile" style="--i:2">
-      <span class="lf-tile__label">Collected this month</span>
-      <span class="lf-tile__value"><small>{{ dash.currency }}</small>{{ dash.this_month }}</span>
-      <span class="lf-tile__note">from payments dated this month</span>
-    </div>
-    <a class="lf-tile" style="--i:3" href="{{ dash.leads_url }}">
-      <span class="lf-tile__label">New inquiries</span>
-      <span class="lf-tile__value">{{ dash.new_leads }}</span>
-      <span class="lf-tile__note">waiting for a reply</span>
+  </header>
+
+  <section class="lf-kpis" aria-label="Key figures">
+    <article class="lf-kpi">
+      <div class="lf-kpi__head"><span class="lf-kpi__icon"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-scale"/></svg></span>Outstanding balance</div>
+      <p class="lf-kpi__value"><small>{{ dash.currency }}</small>{{ dash.outstanding }}</p>
+      <p class="lf-kpi__foot">{% if dash.owing_count %}Across {{ dash.owing_count }} project{{ dash.owing_count|pluralize }} with a balance{% else %}Nothing is owed right now{% endif %}</p>
+    </article>
+
+    <article class="lf-kpi">
+      <div class="lf-kpi__head"><span class="lf-kpi__icon"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-coins"/></svg></span>Collected so far</div>
+      <p class="lf-kpi__value"><small>{{ dash.currency }}</small>{{ dash.collected }}</p>
+      <div class="lf-kpi__foot">
+        <span class="lf-meter" role="img" aria-label="{{ dash.collected_percent }}% of contract value collected"><span class="lf-meter__fill" style="width:{{ dash.collected_percent }}%"></span></span>
+        <span>{{ dash.collected_percent }}% of {{ dash.contract }}</span>
+      </div>
+    </article>
+
+    <article class="lf-kpi">
+      <div class="lf-kpi__head"><span class="lf-kpi__icon"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-trend"/></svg></span>This month</div>
+      <p class="lf-kpi__value"><small>{{ dash.currency }}</small>{{ dash.this_month }}</p>
+      <p class="lf-kpi__foot">
+        {% if dash.delta %}
+          <span class="lf-delta lf-delta--{{ dash.delta.direction }}"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-arrow-{{ dash.delta.direction }}"/></svg>{{ dash.delta.text }}</span>
+          vs {{ dash.previous_month|date:"F" }}
+        {% else %}Nothing was collected in {{ dash.previous_month|date:"F" }}{% endif %}
+      </p>
+    </article>
+
+    <a class="lf-kpi lf-kpi--link" href="{{ dash.leads_url }}">
+      <div class="lf-kpi__head"><span class="lf-kpi__icon"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg></span>New inquiries</div>
+      <p class="lf-kpi__value">{{ dash.new_leads }}</p>
+      <p class="lf-kpi__foot">{% if dash.new_leads %}Waiting for a reply <svg class="lf-i" aria-hidden="true"><use href="#lf-i-arrow-right"/></svg>{% else %}You're all caught up{% endif %}</p>
     </a>
-  </div>
+  </section>
 
-  <div class="lf-cols">
-    <div class="lf-card">
-      <h2>Projects by status</h2>
-      <ul class="lf-bars">
-        {% for status in dash.statuses %}
-          <li>
-            <a href="{{ status.url }}" title="Show {{ status.label|lower }} projects">
-              <span>{{ status.label }}</span><b>{{ status.count }}</b>
-              <span class="lf-bar" style="width:{{ status.percent }}%"></span>
-            </a>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
+  <div class="lf-dash-grid">
 
-    <div class="lf-card">
-      <h2>Due within 14 days, with a balance</h2>
-      {% if dash.attention %}
-        <ul class="lf-list">
-          {% for item in dash.attention %}
+    <section class="lf-card lf-card--span2" aria-labelledby="chart-title">
+      <header class="lf-card__head">
+        <div>
+          <h2 id="chart-title">Collections</h2>
+          <p>Payments received in the last six months, in {{ dash.currency }}</p>
+        </div>
+        <div class="lf-card__figure"><strong>{{ dash.chart.total }}</strong><span>six-month total</span></div>
+      </header>
+      <div class="lf-chart{% if not dash.chart.has_data %} lf-chart--empty{% endif %}">
+        <div class="lf-chart__plot" aria-hidden="true">
+          {% for tick in dash.chart.ticks %}
+            <div class="lf-chart__grid" style="bottom: {{ tick.percent|floatformat:'2u' }}%"><span>{{ tick.label }}</span></div>
+          {% endfor %}
+          <ol class="lf-chart__bars">
+            {% for month in dash.chart.months %}
+              <li class="lf-chart__col{% if month.current %} is-current{% endif %}">
+                <div class="lf-chart__bar{% if month.empty %} is-empty{% endif %}" style="--h: {{ month.percent|floatformat:'2u' }}%" tabindex="0">
+                  {% if month.current and not month.empty %}<span class="lf-chart__value">{{ month.amount }}</span>{% endif %}
+                  <span class="lf-chart__tip" role="tooltip">{{ month.full }}<b>{{ month.amount }}</b></span>
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        </div>
+        <ol class="lf-chart__labels" aria-hidden="true">
+          {% for month in dash.chart.months %}<li{% if month.current %} class="is-current"{% endif %}>{{ month.label }}</li>{% endfor %}
+        </ol>
+        {% if not dash.chart.has_data %}<p class="lf-chart__note">No payments in the last six months yet.</p>{% endif %}
+        <table class="sr-only">
+          <caption>Payments received per month</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Amount</th></tr></thead>
+          <tbody>{% for month in dash.chart.months %}<tr><th scope="row">{{ month.full }}</th><td>{{ month.amount }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="lf-card" aria-labelledby="status-title">
+      <header class="lf-card__head">
+        <div><h2 id="status-title">Projects by status</h2><p>{{ dash.project_count }} project{{ dash.project_count|pluralize }} in total</p></div>
+        <a class="lf-link" href="{{ projects_url }}">View all</a>
+      </header>
+      {% if dash.project_count %}
+        <ul class="lf-bars">
+          {% for status in dash.statuses %}
             <li>
-              <a href="{{ item.url }}">{{ item.name }}</a>
-              <strong>{{ item.balance }}</strong>
-              <small>{{ item.client }} &middot; {% if item.overdue %}<span class="lf-badge lf-badge--bad">Overdue since {{ item.deadline|date:"M j" }}</span>{% else %}due {{ item.deadline|date:"M j" }}{% endif %}</small>
+              <a href="{{ status.url }}">
+                <span class="lf-bars__label"><span class="lf-dot lf-dot--{{ status.tone }}" aria-hidden="true"></span>{{ status.label }}</span>
+                <b>{{ status.count }}</b>
+                <span class="lf-bars__track" aria-hidden="true"><span class="lf-bars__fill" style="width: {{ status.percent }}%"></span></span>
+              </a>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="lf-empty">Nothing with a balance is due in the next two weeks.</p>
+        <div class="lf-empty">
+          <svg class="lf-i" aria-hidden="true"><use href="#lf-i-layers"/></svg>
+          <p>No projects yet.</p>
+          <a class="lf-btn lf-btn--sm" href="{% url 'admin:tracker_project_add' %}">Add your first project</a>
+        </div>
       {% endif %}
-    </div>
+    </section>
 
-    <div class="lf-card">
-      <h2>Receipts and ledger</h2>
+    <section class="lf-card lf-card--span2" aria-labelledby="payments-title">
+      <header class="lf-card__head">
+        <div><h2 id="payments-title">Recent payments</h2><p>The latest money in, and its receipt</p></div>
+        <a class="lf-link" href="{{ payments_url }}">View all</a>
+      </header>
+      {% if dash.recent_payments %}
+        <div class="lf-table-wrap">
+          <table class="lf-table">
+            <thead><tr><th scope="col">Project</th><th scope="col">Date</th><th scope="col">Receipt</th><th scope="col" class="lf-num">Amount</th></tr></thead>
+            <tbody>
+              {% for p in dash.recent_payments %}
+                <tr>
+                  <td data-label="Project"><a class="lf-cell-title" href="{{ p.url }}">{{ p.project }}</a><span class="lf-cell-sub">{{ p.client }} · {{ p.method }}</span></td>
+                  <td data-label="Date" class="lf-nowrap">{{ p.date|date:"M j, Y" }}</td>
+                  <td data-label="Receipt">{% if p.receipt %}<span class="lf-badge lf-badge--{{ p.receipt.tone }}">{{ p.receipt.status }}</span>{% else %}<span class="lf-badge lf-badge--muted">Not issued</span>{% endif %}</td>
+                  <td data-label="Amount" class="lf-num"><span class="lf-money">{{ p.amount }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="lf-empty">
+          <svg class="lf-i" aria-hidden="true"><use href="#lf-i-wallet"/></svg>
+          <p>No payments recorded yet.</p>
+          <a class="lf-btn lf-btn--sm" href="{% url 'admin:tracker_payment_add' %}">Record a payment</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="lf-card" aria-labelledby="due-title">
+      <header class="lf-card__head">
+        <div><h2 id="due-title">Deadlines</h2><p>Due in the next 30 days, with a balance</p></div>
+      </header>
+      {% if dash.deadlines %}
+        <ul class="lf-list">
+          {% for item in dash.deadlines %}
+            <li>
+              <a href="{{ item.url }}">
+                <span class="lf-date{% if item.days < 0 %} lf-date--late{% endif %}" aria-hidden="true"><b>{{ item.date|date:"j" }}</b>{{ item.date|date:"M" }}</span>
+                <span class="lf-list__text"><strong>{{ item.name }}</strong><small>{{ item.client }}</small></span>
+                <span class="lf-list__end">
+                  <b>{{ item.balance }}</b>
+                  {% if item.days < 0 %}<span class="lf-badge lf-badge--bad">Overdue</span>
+                  {% elif item.days == 0 %}<span class="lf-badge lf-badge--warn">Due today</span>
+                  {% else %}<span class="lf-pill">in {{ item.days }} day{{ item.days|pluralize }}</span>{% endif %}
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="lf-empty">
+          <svg class="lf-i" aria-hidden="true"><use href="#lf-i-calendar"/></svg>
+          <p>Nothing with a balance is due in the next 30 days.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="lf-card" aria-labelledby="leads-title">
+      <header class="lf-card__head">
+        <div><h2 id="leads-title">Inquiries</h2><p>From the Portfolio Assistant</p></div>
+        <a class="lf-link" href="{{ leads_url }}">View all</a>
+      </header>
+      {% if dash.recent_leads %}
+        <ul class="lf-list">
+          {% for lead in dash.recent_leads %}
+            <li>
+              <a href="{{ lead.url }}">
+                <span class="lf-avatar lf-avatar--soft" aria-hidden="true">{{ lead.name|slice:":1"|upper }}</span>
+                <span class="lf-list__text"><strong>{{ lead.name }}</strong><small>{{ lead.idea|truncatechars:58 }}</small></span>
+                <span class="lf-badge lf-badge--{{ lead.tone }}">{{ lead.status }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="lf-empty">
+          <svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg>
+          <p>No inquiries yet. The assistant on your public site collects them.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="lf-card" aria-labelledby="ledger-title">
+      <header class="lf-card__head">
+        <div><h2 id="ledger-title">Ledger</h2><p>Receipts sealed on your blockchain</p></div>
+        {% if not dash.chain.online %}<span class="lf-badge lf-badge--bad">Offline</span>
+        {% elif dash.chain.valid %}<span class="lf-badge lf-badge--good">Chain intact</span>
+        {% else %}<span class="lf-badge lf-badge--bad">Failed validation</span>{% endif %}
+      </header>
       <dl class="lf-kv">
-        <dt>Blockchain node</dt>
-        <dd>
-          {% if not dash.chain.online %}<span class="lf-badge lf-badge--bad">Offline</span>
-          {% elif dash.chain.valid %}<span class="lf-badge lf-badge--good">Online, chain intact</span>
-          {% else %}<span class="lf-badge lf-badge--bad">Chain failed validation</span>{% endif %}
-        </dd>
         {% if dash.chain.online %}
-          <dt>Block height</dt><dd>{{ dash.chain.status.height }}</dd>
+          <div><dt>Block height</dt><dd>{{ dash.chain.status.height }}</dd></div>
+          <div><dt>Last block</dt><dd>{{ dash.chain.latest_age|default:"Genesis only" }}</dd></div>
+        {% else %}
+          <div><dt>Node</dt><dd>Not reachable. Start it with start.bat.</dd></div>
         {% endif %}
-        <dt>Receipts issued</dt><dd>{{ dash.receipt_count }}</dd>
-        <dt>Receipts not yet confirmed</dt><dd>{{ dash.receipts_not_confirmed }}</dd>
-        <dt>Payments without a receipt</dt><dd>{{ dash.payments_without_receipt }}</dd>
-        <dt>Systems on the Showcase</dt><dd>{{ dash.public_count }} of {{ dash.project_count }}</dd>
+        <div><dt>Receipts confirmed</dt><dd>{{ dash.receipts_confirmed }} of {{ dash.receipts_total }}</dd></div>
+        <div><dt>Waiting to be sealed</dt><dd>{{ dash.receipts_waiting }}</dd></div>
+        <div><dt>Payments without a receipt</dt><dd>{% if dash.payments_without_receipt %}<a href="{{ payments_url }}">{{ dash.payments_without_receipt }}</a>{% else %}0{% endif %}</dd></div>
       </dl>
-    </div>
-  </div>
-</section>
-{{ block.super }}
-{% endblock %}
+      <a class="lf-link lf-card__foot" href="{{ receipts_url }}">Open receipts <svg class="lf-i" aria-hidden="true"><use href="#lf-i-arrow-right"/></svg></a>
+    </section>
 
-{# Recent actions are left out: the cards above are what a one-person desk needs. #}
-{% block sidebar %}{% endblock %}
+    <section class="lf-card" aria-labelledby="site-title">
+      <header class="lf-card__head">
+        <div><h2 id="site-title">Showcase</h2><p>What visitors see on your public site</p></div>
+      </header>
+      <dl class="lf-kv">
+        <div><dt>Systems on display</dt><dd>{{ dash.public_count }} of {{ dash.project_count }}</dd></div>
+        <div><dt>Assistant questions to review</dt><dd>{% if dash.unreviewed_questions %}<a href="{% url 'admin:tracker_unansweredquestion_changelist' %}?reviewed__exact=0">{{ dash.unreviewed_questions }}</a>{% else %}0{% endif %}</dd></div>
+      </dl>
+      <div class="lf-card__actions">
+        <a class="lf-btn lf-btn--sm" href="{{ site_url|default:'/' }}" target="_blank" rel="noopener"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-globe"/></svg>Open the site</a>
+        <a class="lf-btn lf-btn--sm lf-btn--ghost" href="{{ projects_url }}?is_public__exact=1">Manage what's shown</a>
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

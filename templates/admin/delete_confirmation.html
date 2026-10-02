@@ -1,0 +1,9 @@
+{% extends "admin/delete_confirmation.html" %}
+{% load admin_urls %}
+
+{# Django's delete page, plus a way back when the delete is not allowed. #}
+{% block content %}{{ block.super }}
+{% if perms_lacking or protected %}
+<p class="lf-back"><a class="button" href="{% url opts|admin_urlname:'change' object.pk|admin_urlquote %}">Back to {{ object_name }}</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Search</div>{% endblock %}
+
+{% block content %}
+<div id="content-main" class="lf-search-page">
+  <form class="lf-search lf-search--large" action="{% url 'tracker_search' %}" method="get" role="search">
+    <svg class="lf-i" aria-hidden="true"><use href="#lf-i-search"/></svg>
+    <label class="sr-only" for="lf-page-search">Search the Tracker</label>
+    <input id="lf-page-search" type="search" name="q" value="{{ query }}" placeholder="Search clients, projects, payments, receipts, inquiries…" autocomplete="off"{% if not query %} autofocus{% endif %}>
+    <button type="submit" class="lf-btn lf-btn--primary">Search</button>
+  </form>
+
+  {% if not query %}
+    <div class="lf-card lf-empty lf-empty--page">
+      <svg class="lf-i" aria-hidden="true"><use href="#lf-i-search"/></svg>
+      <p>Search by name, email, phone, receipt number, GCash reference or system name.</p>
+      <p class="lf-muted">Tip: press <kbd>/</kbd> anywhere in the Tracker to jump to search.</p>
+    </div>
+  {% elif not groups %}
+    <div class="lf-card lf-empty lf-empty--page">
+      <svg class="lf-i" aria-hidden="true"><use href="#lf-i-search"/></svg>
+      <p>Nothing matches “{{ query }}”.</p>
+      <p class="lf-muted">Try part of a name, or a receipt number like RCT-2026.</p>
+    </div>
+  {% else %}
+    <p class="lf-muted lf-search-page__count">{{ total }} result{{ total|pluralize }}</p>
+    {% for group in groups %}
+      <section class="lf-card lf-results" aria-labelledby="results-{{ forloop.counter }}">
+        <header class="lf-card__head">
+          <h2 id="results-{{ forloop.counter }}">{{ group.label }} <span class="lf-count">{{ group.count }}</span></h2>
+          {% if group.count > group.items|length %}<a class="lf-link" href="{{ group.more_url }}">See all {{ group.count }}</a>{% endif %}
+        </header>
+        <ul class="lf-list">
+          {% for item in group.items %}
+            <li>
+              <a href="{{ item.url }}">
+                <span class="lf-avatar lf-avatar--soft" aria-hidden="true">{{ item.title|slice:":1"|upper }}</span>
+                <span class="lf-list__text"><strong>{{ item.title }}</strong>{% if item.detail %}<small>{{ item.detail }}</small>{% endif %}</span>
+                {{ item.status }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
