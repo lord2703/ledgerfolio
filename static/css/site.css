@@ -297,7 +297,7 @@ main { display: block; padding-top: 6.5rem; }
 
 .nav__links { display: flex; align-items: center; gap: 0.15rem; }
 .nav__link {
-  position: relative; padding: 0.55rem 0.95rem; border-radius: 999px;
+  position: relative; padding: 0.55rem 0.95rem; border-radius: 999px; white-space: nowrap;
   font-size: 0.92rem; font-weight: 600; color: var(--text-2);
   transition: color 0.25s var(--ease), background-color 0.25s var(--ease);
 }
@@ -879,6 +879,16 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
   .chat-fab { padding: 0.95rem; }
   .lookup { flex-direction: column; border-radius: var(--radius); }
   .a11y { right: 1rem; }
+}
+
+/* Narrow tablets: "Verify a receipt" becomes "Verify" so the top bar stays on one line. */
+@media (min-width: 721px) and (max-width: 940px) {
+  .nav__more { display: none; }
+}
+
+/* Small phones: long values (system name, amount) get a full row on the receipt card. */
+@media (max-width: 420px) {
+  .fact:nth-child(n + 3) { grid-column: 1 / -1; border-left: 0; }
 }
 
 @media print {

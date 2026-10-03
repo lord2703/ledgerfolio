@@ -6,11 +6,9 @@ from django.contrib import admin
 from django.db.models import Q
 from django.template.response import TemplateResponse
 from django.urls import reverse
-from django.utils.text import Truncator
 
-from .models import Client, Lead, Payment, Project, Receipt
-from .services.pdf import money
-from .ui import lead_badge, ledger_badge, project_badge
+from .models import Client, Lead, Payment, Project, Receipt, shorten
+from .ui import lead_badge, ledger_badge, money_short, project_badge
 
 LIMIT = 6
 MAX_QUERY = 100
@@ -58,20 +56,20 @@ def search(query):
     )
     groups = [
         _group("Projects", Project, projects, lambda p: _item(
-            p, p.system_name, f"{p.client.name} · balance {money(p.balance)}", project_badge(p)
+            p, p.system_name, f"{p.client.name} · balance {money_short(p.balance)}", project_badge(p)
         ), query),
         _group("Clients", Client, clients, lambda c: _item(
             c, c.name, c.email or c.phone or c.other_contact
         ), query),
         _group("Payments", Payment, payments, lambda p: _item(
-            p, money(p.amount), f"{p.project.system_name} · {p.project.client.name} · "
+            p, money_short(p.amount), f"{p.project.system_name} · {p.project.client.name} · "
                                 f"{p.date:%b} {p.date.day}, {p.date.year}"
         ), query),
         _group("Receipts", Receipt, receipts, lambda r: _item(
             r, r.receipt_number, f"{r.client_name} · {r.system_name}", ledger_badge(r)
         ), query),
         _group("Inquiries", Lead, inquiries, lambda lead: _item(
-            lead, lead.name, Truncator(lead.system_idea).chars(80), lead_badge(lead)
+            lead, lead.name, shorten(lead.system_idea, 80), lead_badge(lead)
         ), query),
     ]
     return [group for group in groups if group]

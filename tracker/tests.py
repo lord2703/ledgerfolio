@@ -223,7 +223,7 @@ class AdminTests(LocalNodeMixin, TestCase):
         make_project(name="Other System", status=Project.Status.IN_DEVELOPMENT)
         url = reverse("admin:tracker_project_changelist")
         response = self.client.get(url)
-        self.assertContains(response, "PHP 7,000.00")
+        self.assertContains(response, "₱7,000.00")
         filtered = self.client.get(url, {"status__exact": "ready_for_final"})
         self.assertContains(filtered, "Clinic Records System")
         self.assertNotContains(filtered, "Other System")

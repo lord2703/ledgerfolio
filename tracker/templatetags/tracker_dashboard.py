@@ -13,8 +13,7 @@ from django.utils.timesince import timesince
 from ledger import services as ledger
 from ledger.client import NodeClient
 from tracker.models import ZERO, Lead, Payment, Project, Receipt, UnansweredQuestion
-from tracker.services.pdf import money
-from tracker.ui import LEAD_TONES, LEDGER_TONES, STATUS_TONES, compact_number
+from tracker.ui import LEAD_TONES, LEDGER_TONES, STATUS_TONES, compact_number, money_short
 
 register = template.Library()
 
@@ -62,7 +61,7 @@ def collections_chart(today: datetime.date) -> dict:
         {
             "label": start.strftime("%b"),
             "full": start.strftime("%B %Y"),
-            "amount": money(total),
+            "amount": money_short(total),
             "percent": round(float(total) / top * 100, 2) if top else 0,
             "current": start == starts[-1],
             "empty": total == 0,
@@ -72,7 +71,7 @@ def collections_chart(today: datetime.date) -> dict:
     return {
         "months": months,
         "ticks": [{"label": compact_number(t), "percent": t / top * 100} for t in ticks],
-        "total": money(sum(totals.values(), ZERO)),
+        "total": money_short(sum(totals.values(), ZERO)),
         "has_data": peak > 0,
     }
 
@@ -129,7 +128,7 @@ def tracker_dashboard(context):
         {
             "name": p.system_name,
             "client": p.client.name,
-            "balance": money(p.balance),
+            "balance": money_short(p.balance),
             "date": p.deadline,
             "days": (p.deadline - today).days,
             "url": reverse("admin:tracker_project_change", args=[p.pk]),
@@ -148,7 +147,7 @@ def tracker_dashboard(context):
             "client": payment.project.client.name,
             "date": payment.date,
             "method": payment.get_method_display(),
-            "amount": money(payment.amount),
+            "amount": money_short(payment.amount),
             "url": reverse("admin:tracker_payment_change", args=[payment.pk]),
             "receipt": receipt and {
                 "number": receipt.receipt_number,
@@ -187,7 +186,7 @@ def tracker_dashboard(context):
     user = request.user
     name = (user.first_name or user.get_username()).capitalize()
     if outstanding:
-        summary = (f"{money(outstanding)} is still owed across {len(owing)} "
+        summary = (f"{money_short(outstanding)} is still owed across {len(owing)} "
                    f"project{'s' if len(owing) != 1 else ''}.")
     elif projects:
         summary = "Every project is settled. Nothing is owed right now."
@@ -202,7 +201,7 @@ def tracker_dashboard(context):
         "today": today,
         "summary": summary,
         "currency": currency,
-        "contract": money(contract),
+        "contract": money_short(contract),
         "collected": figure(collected),
         "collected_percent": int(collected * 100 / contract) if contract else 0,
         "outstanding": figure(outstanding),

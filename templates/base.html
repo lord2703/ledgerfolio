@@ -57,7 +57,7 @@
         <div class="nav__links" id="nav-links">
           <a class="nav__link" href="{% url 'showcase:system_list' %}" {% if page == 'system_list' or page == 'system_detail' %}aria-current="page"{% endif %}>Systems</a>
           <a class="nav__link" href="{% url 'showcase:ledger' %}" {% if page == 'ledger' %}aria-current="page"{% endif %}>Ledger</a>
-          <a class="nav__link" href="{% url 'showcase:verify_lookup' %}" {% if page == 'verify_lookup' or page == 'verify' %}aria-current="page"{% endif %}>Verify a receipt</a>
+          <a class="nav__link" href="{% url 'showcase:verify_lookup' %}" {% if page == 'verify_lookup' or page == 'verify' %}aria-current="page"{% endif %} aria-label="Verify a receipt">Verify<span class="nav__more"> a receipt</span></a>
         </div>
 
         <button class="icon-btn theme-toggle" id="theme-toggle" type="button" aria-label="Switch between dark and light mode">

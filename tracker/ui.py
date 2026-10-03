@@ -1,9 +1,15 @@
 """Presentation helpers shared by the Tracker admin, its dashboard and its search."""
 
+from django.conf import settings
+from django.utils import timezone
+from django.utils.dateformat import format as date_format
 from django.utils.html import format_html
 
 from .models import Lead, Project, Receipt
 from .services.pdf import money
+
+# Screens use the short sign; receipt PDFs keep the code ("PHP 7,000.00").
+CURRENCY_SYMBOLS = {"PHP": "₱", "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥"}
 
 STATUS_TONES = {
     Project.Status.IN_DEVELOPMENT: "info",
@@ -41,9 +47,28 @@ def lead_badge(lead):
     return badge(lead.get_status_display(), LEAD_TONES.get(lead.status, "muted"))
 
 
+def money_short(value) -> str:
+    """₱7,000.00, or the code form when the currency has no sign listed."""
+    symbol = CURRENCY_SYMBOLS.get(settings.CURRENCY_CODE)
+    if not symbol:
+        return money(value)
+    return f"{'-' if value < 0 else ''}{symbol}{abs(value):,.2f}"
+
+
 def amount(value):
     """Money that never wraps across two lines in a table cell."""
-    return format_html('<span class="lf-money">{}</span>', money(value))
+    return format_html('<span class="lf-money">{}</span>', money_short(value))
+
+
+def when(value):
+    """A date and time as two short lines, the time quieter. None stays None (shown as "-")."""
+    if value is None:
+        return None
+    local = timezone.localtime(value)
+    return format_html(
+        '<span class="lf-when">{}<small>{}</small></span>',
+        date_format(local, "M j, Y"), date_format(local, "g:i A"),
+    )
 
 
 def initials(name: str) -> str:
@@ -58,7 +83,7 @@ def entity(title, detail="", avatar=None):
         '<span class="lf-ent__text"><span class="lf-ent__title">{}</span>{}</span></span>',
         avatar if avatar is not None else initials(title),
         title,
-        format_html('<span class="lf-ent__detail">{}</span>', detail) if detail else "",
+        format_html('<span class="lf-ent__detail" title="{}">{}</span>', detail, detail) if detail else "",
     )
 
 

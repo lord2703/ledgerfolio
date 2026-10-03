@@ -642,14 +642,15 @@ body.lf {
   padding: 0; background: var(--surface-2); color: var(--muted); border: 0; border-bottom: 1px solid var(--border);
   font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
 }
-.lf #result_list thead th .text a, .lf #result_list thead th .text span { display: block; padding: 11px 16px; color: var(--muted); }
+.lf #result_list thead th .text a, .lf #result_list thead th .text span { display: block; padding: 11px 12px; color: var(--muted); }
 .lf #result_list thead th .text a:hover { background: var(--surface-3); color: var(--text); }
 .lf #result_list thead th.sorted { background: var(--surface-3); }
 .lf #result_list thead th.sorted .text a { color: var(--text); }
 .lf #result_list thead th.sorted .sortoptions { padding: 12px 10px 0 4px; }
-.lf #result_list thead th.action-checkbox-column { width: 44px; padding: 0 0 0 16px; text-align: left; }
+.lf #result_list thead th.action-checkbox-column { width: 16px; padding: 0 4px 0 18px; text-align: left; }
+.lf #result_list thead th.action-checkbox-column .text span { padding: 11px 0; }
 .lf #result_list tbody td, .lf #result_list tbody th {
-  padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle;
+  padding: 13px 12px; border-bottom: 1px solid var(--border); vertical-align: middle;
   background: transparent; color: var(--text); font-size: 0.875rem; line-height: 1.4;
 }
 .lf #result_list tbody tr { background: transparent; transition: background-color 0.12s; }
@@ -659,11 +660,18 @@ body.lf {
 .lf #result_list tbody tr:last-child > td, .lf #result_list tbody tr:last-child > th { border-bottom: 0; }
 .lf #result_list tbody th a, .lf #result_list tbody th a:visited { color: var(--text); font-weight: 600; }
 .lf #result_list tbody th a:hover { color: var(--accent-text); }
-.lf #result_list td.action-checkbox { width: 44px; padding-right: 0; text-align: left; }
+.lf #result_list td.action-checkbox { width: 16px; padding-left: 18px; padding-right: 4px; text-align: left; }
+.lf #result_list thead th:last-child .text a, .lf #result_list thead th:last-child .text span,
+.lf #result_list tbody tr > :last-child { padding-right: 18px; }
 .lf #result_list input[type="checkbox"], .lf input[type="checkbox"] { accent-color: var(--accent-text); width: 16px; height: 16px; cursor: pointer; }
 .lf #result_list img[src*="icon-yes"], .lf #result_list img[src*="icon-no"] { width: 16px; height: 16px; }
 .lf #result_list a.lf-ent, .lf #result_list th a .lf-ent__title { color: var(--text); }
-.lf #result_list tbody th.field-project, .lf #result_list tbody th.field-client, .lf #result_list tbody th.field-person { min-width: 230px; }
+.lf #result_list tbody th.field-project, .lf #result_list tbody th.field-client, .lf #result_list tbody th.field-person { min-width: 210px; }
+/* Long project names wrap instead of widening the payments list. */
+.lf #result_list td.field-project { white-space: normal; min-width: 170px; }
+/* Dates with times: the date, then the time on a quieter second line. */
+.lf .lf-when { display: inline-grid; line-height: 1.3; white-space: nowrap; }
+.lf .lf-when small { color: var(--muted); font-size: 0.78rem; }
 /* Money lines up on the right, like a ledger. */
 .lf #result_list td.field-price, .lf #result_list td.field-paid, .lf #result_list td.field-owed,
 .lf #result_list td.field-amount_display, .lf #result_list th.column-price, .lf #result_list th.column-paid,
@@ -754,6 +762,7 @@ body.lf {
 .lf form .aligned .readonly, .lf form .aligned label + div.readonly {
   margin: 0; padding: 0; color: var(--text); font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere;
 }
+.lf form .aligned bdi { overflow-wrap: anywhere; } /* password hash details on a user */
 .lf form .aligned div.radiolist { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; }
 .lf form .aligned div.radiolist label { font-weight: 500; color: var(--text); display: inline-flex; gap: 6px; align-items: center; }
 
@@ -784,7 +793,8 @@ body.lf {
 .lf .related-widget-wrapper-link img, .lf .datetimeshortcuts .date-icon, .lf .datetimeshortcuts .clock-icon,
 .lf .inline-deletelink, .lf a.related-lookup { filter: grayscale(1); opacity: 0.6; }
 .lf .related-widget-wrapper-link:hover img, .lf .datetimeshortcuts a:hover .date-icon { opacity: 1; }
-.lf p.file-upload { display: grid; gap: 6px; margin: 0; color: var(--muted); font-size: 0.8rem; }
+.lf p.file-upload { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 0; color: var(--muted); font-size: 0.8rem; }
+.lf p.file-upload input[type="file"] { min-width: 0; max-width: 100%; }
 .lf p.file-upload br { display: none; }
 .lf p.file-upload a { overflow-wrap: anywhere; }
 .lf .lf-thumb { display: block; width: 104px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-3); }
@@ -1164,10 +1174,18 @@ body.lf {
 
 /* ---------- 13. Responsive ------------------------------------------------- */
 
+/* Laptops: a slightly slimmer sidebar and margins leave lists room for every column. */
+@media (max-width: 1366px) {
+  html:root { --sidebar-w: 240px; --pad-x: 24px; }
+}
+
 @media (max-width: 1280px) {
   .lf .lf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lf .lf-dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lf .lf-card--span2 { grid-column: 1 / -1; }
+  /* Two columns leave the status card alone on its row, so it takes the row and lays its bars side by side. */
+  .lf .lf-card--status { grid-column: 1 / -1; }
+  .lf .lf-card--status .lf-bars { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 20px; }
 }
 
 /* Tablet and phone: the sidebar becomes a slide-out menu. */
@@ -1214,6 +1232,8 @@ body.lf {
   }
   .lf #result_list tbody tr > th:first-of-type, .lf #result_list tbody tr > td.action-checkbox + td { display: block; padding: 0 0 8px; text-align: left; font-size: 0.95rem; }
   .lf #result_list tbody tr > th:first-of-type::before, .lf #result_list tbody tr > td.action-checkbox + td::before { content: none; }
+  .lf #result_list tbody tr > :last-child { padding-right: 0; }
+  .lf .lf-card--status .lf-bars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lf #result_list tbody td.action-checkbox { position: absolute; left: 16px; top: 16px; padding: 0; width: auto; }
   .lf #result_list tbody td.action-checkbox::before { content: none; }
   .lf .lf-ent__detail { max-width: 60vw; }
@@ -1256,6 +1276,7 @@ body.lf {
 
   .lf .lf-kpis { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .lf .lf-dash-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .lf .lf-card--status .lf-bars { grid-template-columns: minmax(0, 1fr); }
   .lf .lf-card { padding: 18px; }
   .lf .lf-table-wrap { margin: 0 -18px; }
   .lf .lf-hero { align-items: stretch; }

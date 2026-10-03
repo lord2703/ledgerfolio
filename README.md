@@ -115,7 +115,11 @@ start.bat
 
 ## 3. Using the Tracker
 
-Log in at `/admin/`. The top bar has every section.
+Log in at `/admin/`. Every section is in the sidebar on the left (on a phone or
+tablet, tap the ☰ button). The search box at the top finds any project, client,
+payment, receipt or inquiry; press `/` to jump to it. The ◐ button next to it
+switches between automatic, light and dark mode. On phones, lists turn into
+cards, so nothing needs sideways scrolling.
 
 1. **Clients**: add a client. The email is where receipts are sent.
 2. **Projects**: add a project with its client, system name, total price, status and
@@ -132,7 +136,9 @@ Log in at `/admin/`. The top bar has every section.
    `ai/data/intents.json`, retrain, and tick *reviewed*.
 
 The **Overview** page shows the outstanding balance, collections, projects by
-status, deadlines within 14 days, and whether the blockchain is healthy.
+status, deadlines within 30 days, recent payments, new inquiries, and whether the
+blockchain is healthy. Amounts on screen use the ₱ sign; receipt PDFs and emails
+spell out the code (PHP).
 
 **Statuses**: In development, Ready for pre-oral, Ready for final, Fully paid.
 Filter any list by status, balance (still owing or settled), or deadline.

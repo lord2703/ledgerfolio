@@ -23,8 +23,18 @@ from .models import (
 )
 from .services import leads as lead_service
 from .services import receipts as receipt_service
-from .services.pdf import money
-from .ui import amount, badge, entity, lead_badge, ledger_badge, project_badge
+from .ui import amount, badge, entity, lead_badge, ledger_badge, money_short, project_badge, when
+
+
+def date_filter(title):
+    """Django's date filter under a heading of our choosing ("Received", not "Created at")."""
+
+    class DateFilter(admin.DateFieldListFilter):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.title = title
+
+    return DateFilter
 
 
 class TrackerAdminMixin:
@@ -105,7 +115,7 @@ class ClientProjectInline(admin.TabularInline):
 @admin.register(Client)
 class ClientAdmin(TrackerAdminMixin, admin.ModelAdmin):
     page_description = "The people and schools you build systems for."
-    list_display = ("client", "phone", "project_count", "created_at")
+    list_display = ("client", "phone", "project_count", "added")
     search_fields = ("name", "email", "phone", "other_contact")
     inlines = [ClientProjectInline]
     fieldsets = (
@@ -123,6 +133,10 @@ class ClientAdmin(TrackerAdminMixin, admin.ModelAdmin):
     @admin.display(description="Projects", ordering="project_total")
     def project_count(self, obj):
         return obj.project_total
+
+    @admin.display(description="Added", ordering="created_at")
+    def added(self, obj):
+        return when(obj.created_at)
 
 
 # ----------------------------------------------------------------------
@@ -244,7 +258,7 @@ class ProjectAdmin(TrackerAdminMixin, admin.ModelAdmin):
             "<div><span>Paid so far</span><strong>{}</strong></div>"
             "<div><span>Balance</span><strong>{}</strong></div>"
             "</div>",
-            money(obj.total_price), money(obj.paid_so_far), money(obj.balance),
+            money_short(obj.total_price), money_short(obj.paid_so_far), money_short(obj.balance),
         )
 
     @admin.action(description="Show selected projects on the Showcase")
@@ -343,10 +357,10 @@ class PaymentAdmin(TrackerAdminMixin, admin.ModelAdmin):
 class ReceiptAdmin(TrackerAdminMixin, admin.ModelAdmin):
     page_description = "Issued receipts and whether each one is sealed on the ledger."
     list_display = (
-        "receipt_number", "client_name", "system_name", "amount_display", "issued_at",
-        "ledger_status_badge", "emailed_at",
+        "receipt_number", "client_name", "system_name", "amount_display", "issued",
+        "ledger_status_badge", "emailed",
     )
-    list_filter = ("ledger_status", "document_type", "issued_at")
+    list_filter = ("ledger_status", "document_type", ("issued_at", date_filter("issued")))
     search_fields = ("receipt_number", "client_name", "system_name", "tx_id")
     date_hierarchy = "payment_date"  # a date field; see ProjectAdmin.date_hierarchy
     actions = ["anchor_on_ledger", "resend_email", "regenerate_pdf"]
@@ -409,6 +423,14 @@ class ReceiptAdmin(TrackerAdminMixin, admin.ModelAdmin):
     @admin.display(description="Ledger", ordering="ledger_status")
     def ledger_status_badge(self, obj):
         return ledger_badge(obj)
+
+    @admin.display(description="Issued", ordering="issued_at")
+    def issued(self, obj):
+        return when(obj.issued_at)
+
+    @admin.display(description="Emailed", ordering="emailed_at")
+    def emailed(self, obj):
+        return when(obj.emailed_at)
 
     @admin.display(description="Verify link")
     def verify_link(self, obj):
@@ -489,8 +511,8 @@ class ReceiptAdmin(TrackerAdminMixin, admin.ModelAdmin):
 @admin.register(Lead)
 class LeadAdmin(TrackerAdminMixin, admin.ModelAdmin):
     page_description = "Requests from the Portfolio Assistant, and ones you add yourself."
-    list_display = ("person", "idea", "budget", "deadline", "status_badge", "source", "created_at")
-    list_filter = ("status", "source", "created_at")
+    list_display = ("person", "idea", "budget", "deadline", "status_badge", "source", "received")
+    list_filter = ("status", "source", ("created_at", date_filter("received")))
     search_fields = ("name", "contact", "system_idea")
     readonly_fields = ("created_at", "converted_project")
     actions = ["convert", "mark_contacted", "mark_dropped"]
@@ -511,6 +533,10 @@ class LeadAdmin(TrackerAdminMixin, admin.ModelAdmin):
     @admin.display(description="Status", ordering="status")
     def status_badge(self, obj):
         return lead_badge(obj)
+
+    @admin.display(description="Received", ordering="created_at")
+    def received(self, obj):
+        return when(obj.created_at)
 
     @admin.action(description="Convert to client + project")
     def convert(self, request, queryset):
@@ -541,7 +567,7 @@ class UnansweredQuestionAdmin(TrackerAdminMixin, admin.ModelAdmin):
         "Questions the assistant wasn't sure about. Add good ones to ai/data/intents.json, "
         "retrain, then tick “reviewed”."
     )
-    list_display = ("message", "predicted_intent", "confidence_percent", "reviewed", "created_at")
+    list_display = ("message", "predicted_intent", "confidence_percent", "reviewed", "asked")
     list_filter = ("reviewed", "predicted_intent")
     list_editable = ("reviewed",)
     search_fields = ("message",)
@@ -552,6 +578,10 @@ class UnansweredQuestionAdmin(TrackerAdminMixin, admin.ModelAdmin):
     @admin.display(description="Confidence", ordering="confidence")
     def confidence_percent(self, obj):
         return f"{obj.confidence:.0%}"
+
+    @admin.display(description="Asked", ordering="created_at")
+    def asked(self, obj):
+        return when(obj.created_at)
 
 
 # ----------------------------------------------------------------------
