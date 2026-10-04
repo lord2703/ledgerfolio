@@ -2,7 +2,6 @@
 
 {% block title %}{% if sent %}Message sent{% else %}Send me a message{% endif %} &middot; {{ site_name }}{% endblock %}
 {% block description %}Tell {{ owner_name }} about the system you need. Your message goes straight to {{ owner_name }}.{% endblock %}
-{% block back %}{% include "showcase/_back.html" with narrow=True %}{% endblock %}
 
 {% block content %}
 <div class="container container--narrow">

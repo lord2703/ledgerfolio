@@ -771,18 +771,19 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 
 /* ---------- 17b. Back link, forms, reviews --------------------------------- */
 
-.back-bar { padding-top: 0.35rem; }
-.back-home {
-  display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 1rem 0.45rem 0.75rem;
-  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
-  font-size: 0.88rem; font-weight: 600; color: var(--text-2);
-  backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur));
-  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background-color 0.25s var(--ease);
+/* Back arrow and label beside the logo, on every page but the homepage */
+.brand--with-back { margin-right: 0; }
+.nav__back {
+  display: inline-flex; align-items: center; gap: 0.4rem; margin-right: auto;
+  padding: 0.45rem 0.85rem 0.45rem 0.3rem; border-radius: 999px; white-space: nowrap;
+  font-size: 0.86rem; font-weight: 600; color: var(--text-2);
+  transition: color 0.25s var(--ease), background-color 0.25s var(--ease);
 }
-.back-home .icon { transition: transform 0.35s var(--ease); }
-.back-home:hover { color: var(--text); border-color: var(--accent); background: var(--surface-2); }
-.back-home:hover .icon { transform: translateX(-3px); }
-:root[data-contrast="high"] main a.back-home { text-decoration: none; border-width: 2px; }
+.nav__back::before { content: ""; width: 1px; height: 1.25rem; margin-right: 0.45rem; background: var(--line-strong); }
+.nav__back .icon { transition: transform 0.35s var(--ease); }
+.nav__back:hover { color: var(--text); background: var(--surface-2); }
+.nav__back:hover .icon { transform: translateX(-3px); }
+.nav__back-short { display: none; }
 
 /* Forms (message form, review form) */
 .form { display: grid; gap: 1.25rem; }
@@ -850,6 +851,7 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 .review__quote { width: 1.9rem; height: 1.9rem; color: var(--accent); opacity: 0.35; fill: currentColor; stroke: none; }
 .review__text { margin: 0; font-family: var(--font-display); font-size: 1.12rem; line-height: 1.5; color: var(--text);
   white-space: pre-line; overflow-wrap: anywhere; }
+.review__plain { color: var(--text-2); font-size: 0.95rem; }
 .review__by { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; font-size: 0.86rem; color: var(--text-2); }
 .review__name { font-weight: 700; color: var(--text); }
 .review__verified { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; }
@@ -982,6 +984,21 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
   .chat-fab { padding: 0.95rem; }
   .lookup { flex-direction: column; border-radius: var(--radius); }
   .a11y { right: 1rem; }
+}
+
+/* The back label beside the logo shortens as the top bar gets tighter: the full
+   sentence on wide screens, "Home" below that, and on small screens the logo
+   keeps its mark but drops its wordmark to make room. */
+@media (max-width: 1080px) {
+  .nav__back-long { display: none; }
+  .nav__back-short { display: inline; }
+}
+@media (max-width: 860px) {
+  .brand--with-back span { display: none; }
+  .nav__back { padding-right: 0.6rem; }
+}
+@media (max-width: 340px) {
+  .nav__back-short { display: none; }
 }
 
 /* Narrow tablets: "Verify a receipt" becomes "Verify" so the top bar stays on one line. */

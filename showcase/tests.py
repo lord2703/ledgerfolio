@@ -222,8 +222,13 @@ class BackLinkTests(LedgerBackedTestCase):
         for name, args in (("showcase:system_list", []), ("showcase:system_detail", [self.public.slug]),
                            ("showcase:ledger", []), ("showcase:verify_lookup", []),
                            ("showcase:contact", [])):
-            self.assertContains(self.client.get(reverse(name, args=args)), "Back to the homepage")
-        self.assertNotContains(self.client.get(reverse("showcase:home")), "Back to the homepage")
+            page = self.client.get(reverse(name, args=args))
+            # An arrow and label sit beside the logo in the top bar.
+            self.assertContains(page, 'class="nav__back"')
+            self.assertContains(page, "Back to the homepage")
+        home = self.client.get(reverse("showcase:home"))
+        self.assertNotContains(home, 'class="nav__back"')
+        self.assertNotContains(home, "Back to the homepage")
 
 
 class MessageFormTests(TestCase):
@@ -294,13 +299,13 @@ class ReviewTests(LedgerBackedTestCase):
         return self.client.post(url or self.url, data)
 
     def test_review_waits_for_approval_then_appears_on_the_site(self):
-        self.assertContains(self.client.get(self.url), "How was working with")
+        self.assertContains(self.client.get(self.url), "How would you rate working with")
         self.assertRedirects(self.write(), f"{self.url}?review=sent#review", fetch_redirect_response=False)
         review = Review.objects.get()
         self.assertEqual((review.rating, review.status, review.project_id, review.receipt_id),
                          (5, Review.Status.PENDING, self.public.pk, self.receipt.pk))
         page = self.client.get(f"{self.url}?review=sent")
-        self.assertContains(page, "Your review was sent")
+        self.assertContains(page, "Your rating was sent")
         self.assertContains(page, "Waiting for approval")
 
         home, detail = reverse("showcase:home"), reverse("showcase:system_detail", args=[self.public.slug])
@@ -316,13 +321,23 @@ class ReviewTests(LedgerBackedTestCase):
     def test_writing_again_replaces_the_review_and_needs_approval_again(self):
         self.write()
         Review.objects.update(status=Review.Status.APPROVED)
-        self.assertContains(self.client.get(f"{self.url}?review=edit"), "Edit your review")
+        self.assertContains(self.client.get(f"{self.url}?review=edit"), "Edit your rating")
         self.write(rating="4", comment="Edited: still very happy with the system.")
         review = Review.objects.get()
         self.assertEqual((review.rating, review.status), (4, Review.Status.PENDING))
 
-    def test_incomplete_review_shows_errors(self):
-        response = self.write(rating="", comment="ok")
+    def test_stars_alone_are_enough(self):
+        self.assertEqual(self.write(rating="5", comment="", display_name="").status_code, 302)
+        review = Review.objects.get()
+        self.assertEqual((review.rating, review.comment, review.display_name), (5, "", ""))
+        self.assertContains(self.client.get(self.url), "without a comment")
+        Review.objects.update(status=Review.Status.APPROVED)
+        home = self.client.get(reverse("showcase:home"))
+        self.assertContains(home, "Rated 5 out of 5")
+        self.assertContains(home, "Verified client")
+
+    def test_a_rating_is_required(self):
+        response = self.write(rating="", comment="Lovely work.")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Choose from 1 to 5 stars")
         self.assertEqual(Review.objects.count(), 0)
@@ -347,7 +362,7 @@ class ReviewTests(LedgerBackedTestCase):
 
     def test_tampered_receipt_shows_no_review_form(self):
         Receipt.objects.filter(pk=self.receipt.pk).update(amount=Decimal("50.00"))
-        self.assertNotContains(self.client.get(self.url), "How was working with")
+        self.assertNotContains(self.client.get(self.url), "How would you rate working with")
 
 
 def post(browser, message):

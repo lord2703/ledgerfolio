@@ -625,7 +625,7 @@ class ReviewAdmin(TrackerAdminMixin, admin.ModelAdmin):
     @admin.display(description="Review", ordering="rating")
     def review(self, obj):
         return format_html('<span class="lf-review">{}<span>{}</span></span>',
-                           stars(obj.rating), shorten(obj.comment, 90))
+                           stars(obj.rating), shorten(obj.comment, 90) or "Stars only, no comment")
 
     @admin.display(description="Rating")
     def rating_stars(self, obj):

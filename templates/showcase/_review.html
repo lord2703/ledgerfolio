@@ -1,10 +1,14 @@
-{# One approved review (a PublicReview). #}
+{# One approved review (a PublicReview). The comment is optional; the stars always show. #}
 <figure class="panel review reveal" style="--i: {{ forloop.counter0|default:0 }}">
   <div class="review__top">
     {% include "showcase/_stars.html" with rating=review.rating %}
-    <svg class="icon review__quote" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-quote"/></svg>
+    {% if review.comment %}<svg class="icon review__quote" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-quote"/></svg>{% endif %}
   </div>
-  <blockquote class="review__text"><p>{{ review.comment }}</p></blockquote>
+  {% if review.comment %}
+    <blockquote class="review__text"><p>{{ review.comment }}</p></blockquote>
+  {% else %}
+    <p class="review__plain">Rated {{ review.rating }} out of 5</p>
+  {% endif %}
   <figcaption class="review__by">
     {% if review.name %}<span class="review__name">{{ review.name }}</span>{% endif %}
     <span class="review__verified"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg>Verified client</span>

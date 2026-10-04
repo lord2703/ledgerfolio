@@ -136,8 +136,9 @@ cards, so nothing needs sideways scrolling.
    Open one to answer it with the **Reply by email**, **Call** or **Send a text**
    buttons, then use the action **Mark as replied**. When someone hires you, use
    **Convert to client + project**. The sidebar shows how many are new.
-5. **Reviews**: clients write these from their receipt's verify page (the QR code
-   link), so every review comes from a real client. Nothing appears on the site
+5. **Reviews**: clients rate you from 1 to 5 stars, with an optional comment, at the
+   bottom of their receipt's verify page (the QR code link), so every review comes
+   from a real client. Nothing appears on the site
    until you tick it and choose **Approve and show on the site**; **Hide from the
    site** takes it down. If a client edits a review, it waits for approval again.
 6. **Assistant log**: questions the chatbot wasn't sure about. Add good ones to
@@ -172,7 +173,8 @@ are ever public: client, price, payments and notes never leave the Tracker.
 | Verify a receipt by pasting its link or code | `/verify/` |
 | A receipt's verification result, where the client can also write a review | `/verify/<code>/` |
 
-Every page except the homepage has a **Back to the homepage** link at the top. The
+On every page except the homepage, the top bar shows a back arrow beside the logo,
+labelled **Back to the homepage** (shortened to **Home** on tablets and phones). The
 message form is limited to 5 messages an hour per visitor and quietly ignores
 spam bots.
 

@@ -48,9 +48,9 @@ class ReviewForm(forms.Form):
         error_messages={"required": "Choose from 1 to 5 stars."},
     )
     comment = forms.CharField(
-        label="Your review", min_length=10, max_length=1000,
+        label="Your comment", max_length=1000, required=False,
         help_text="How was working with me, and what does the system do for you?",
-        widget=forms.Textarea(attrs={"rows": 5}),
+        widget=forms.Textarea(attrs={"rows": 4}),
     )
     display_name = forms.CharField(
         label="Name to show", max_length=80, required=False,

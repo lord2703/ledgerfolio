@@ -2,7 +2,6 @@
 
 {% block title %}Verify a receipt &middot; {{ site_name }}{% endblock %}
 {% block description %}Check that a receipt from {{ owner_name }} is genuine and unchanged.{% endblock %}
-{% block back %}{% include "showcase/_back.html" with narrow=True %}{% endblock %}
 
 {% block content %}
 <div class="container container--narrow">
@@ -31,6 +30,12 @@
       No receipt matches that link or code. Check that you copied all of it.
     </p>
   {% endif %}
+
+  <p class="note reveal" style="margin-top:1.25rem">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>
+    <span><strong>One of my clients?</strong> Open your receipt here (or scan its QR code) and you can rate me
+      from 1 to 5 stars at the bottom of the page. A comment is optional.</span>
+  </p>
 
   <section class="section--tight" aria-labelledby="how-title">
     <h2 class="block-title" id="how-title" style="margin-top:2.5rem">What gets checked</h2>

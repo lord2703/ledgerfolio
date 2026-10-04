@@ -45,7 +45,7 @@
   <header class="site-header">
     <div class="container">
       <nav class="nav" aria-label="Main">
-        <a class="brand" href="{% url 'showcase:home' %}" aria-label="{{ site_name }} home">
+        <a class="brand{% if page != 'home' %} brand--with-back{% endif %}" href="{% url 'showcase:home' %}" aria-label="{{ site_name }} home">
           <svg class="brand__mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true">
             <path d="M16 2.5 27.7 9.25v13.5L16 29.5 4.3 22.75V9.25z"/>
             <path d="M16 9.5 22 13v7l-6 3.5L10 20v-7z" fill="currentColor" fill-opacity=".18"/>
@@ -53,6 +53,14 @@
           </svg>
           <span>{{ site_name }}</span>
         </a>
+        {% if page != 'home' %}
+          {# Beside the logo on every page but the homepage. The label shortens to "Home" on narrow screens. #}
+          <a class="nav__back" href="{% url 'showcase:home' %}" aria-label="Back to the homepage">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left"/></svg>
+            <span class="nav__back-long">Back to the homepage</span>
+            <span class="nav__back-short">Home</span>
+          </a>
+        {% endif %}
 
         <div class="nav__links" id="nav-links">
           <a class="nav__link" href="{% url 'showcase:system_list' %}" {% if page == 'system_list' or page == 'system_detail' %}aria-current="page"{% endif %}>Systems</a>
@@ -82,7 +90,6 @@
   {% include "showcase/_a11y_panel.html" %}
 
   <main id="main">
-    {% block back %}{% include "showcase/_back.html" %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
 

@@ -360,7 +360,7 @@ class Review(models.Model):
     rating = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)], help_text="1 to 5 stars"
     )
-    comment = models.TextField(max_length=1000)
+    comment = models.TextField(max_length=1000, blank=True, help_text="Optional")
     display_name = models.CharField(
         max_length=80, blank=True,
         help_text="Shown with the review. Left empty, the review says \"Verified client\".",
@@ -375,7 +375,8 @@ class Review(models.Model):
         ordering = ["-updated_at"]
 
     def __str__(self):
-        return f"{self.rating}★ for {self.project}: {shorten(self.comment, 40)}"
+        text = f"{self.rating}★ for {self.project}"
+        return f"{text}: {shorten(self.comment, 40)}" if self.comment else text
 
 
 class UnansweredQuestion(models.Model):
