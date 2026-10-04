@@ -2,6 +2,7 @@
 
 {% block title %}{% if receipt %}Receipt {{ receipt.number }}{% else %}Receipt not found{% endif %} &middot; {{ site_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block back %}{% include "showcase/_back.html" with narrow=True %}{% endblock %}
 
 {% block content %}
 <div class="container container--narrow">
@@ -107,6 +108,69 @@
           issued; it does not replace an independent third party.</span>
       </p>
     </section>
+
+    {% if review_box.allowed %}
+      <section class="section--tight" id="review" aria-labelledby="review-title">
+        <div class="panel review-box reveal">
+          {% if review_box.sent %}
+            <p class="review-box__sent" role="status">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>
+              <span>Thank you! Your review was sent. It appears on the site once {{ owner_name }} approves it.</span>
+            </p>
+          {% endif %}
+
+          {% if review_box.form %}
+            {% with form=review_box.form %}
+              <h2 class="review-box__title" id="review-title">{% if review_box.existing %}Edit your review{% else %}How was working with {{ owner_name }}?{% endif %}</h2>
+              <p class="review-box__lead">Your review helps future clients decide. It shows only the name you choose, never your receipt details, and it appears on the site after {{ owner_name }} approves it.</p>
+              <form class="form" method="post" action="{{ request.path }}#review">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                  <p class="form-error" role="alert"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg>{{ form.non_field_errors.0 }}</p>
+                {% endif %}
+                <fieldset class="rate{% if form.rating.errors %} field--error{% endif %}">
+                  <legend class="field__label">Your rating</legend>
+                  <div class="rate__stars">
+                    {% for value in "54321" %}
+                      <input class="rate__input" type="radio" id="rating-{{ value }}" name="rating" value="{{ value }}" required{% if form.rating.value|stringformat:"s" == value %} checked{% endif %}>
+                      <label class="rate__star" for="rating-{{ value }}" title="{{ value }} star{{ value|pluralize }}">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>
+                        <span class="sr-only">{{ value }} star{{ value|pluralize }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                  {% for error in form.rating.errors %}
+                    <p class="field__error" role="alert"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg>{{ error }}</p>
+                  {% endfor %}
+                </fieldset>
+                {% include "showcase/_field.html" with field=form.comment %}
+                {% include "showcase/_field.html" with field=form.display_name %}
+                <div class="form__actions">
+                  <button class="btn btn--primary" type="submit">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-send"/></svg>
+                    {% if review_box.existing %}Save my review{% else %}Send review{% endif %}
+                  </button>
+                </div>
+              </form>
+            {% endwith %}
+          {% else %}
+            <h2 class="review-box__title" id="review-title">Your review</h2>
+            {% include "showcase/_stars.html" with rating=review_box.existing.rating %}
+            <blockquote class="review__text"><p>{{ review_box.existing.comment }}</p></blockquote>
+            <p class="review-box__meta">
+              Shown as <strong>{{ review_box.existing.name|default:"a verified client" }}</strong>
+              <span aria-hidden="true">&middot;</span>
+              <span class="review-box__status review-box__status--{{ review_box.existing.status }}">
+                {% if review_box.existing.status == "approved" %}Published on the site{% elif review_box.existing.status == "hidden" %}Not shown on the site{% else %}Waiting for approval{% endif %}
+              </span>
+            </p>
+            <a class="btn btn--ghost btn--sm" href="?review=edit#review">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pen"/></svg>Edit your review
+            </a>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
   {% endif %}
 
   <section class="section" aria-labelledby="work-title">

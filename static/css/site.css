@@ -769,6 +769,108 @@ canvas.is-ready ~ .stage-fallback { opacity: 0; }
 .empty h2 { font-size: 1.8rem; }
 .empty p { color: var(--text-2); max-width: 30rem; }
 
+/* ---------- 17b. Back link, forms, reviews --------------------------------- */
+
+.back-bar { padding-top: 0.35rem; }
+.back-home {
+  display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 1rem 0.45rem 0.75rem;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  font-size: 0.88rem; font-weight: 600; color: var(--text-2);
+  backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur));
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background-color 0.25s var(--ease);
+}
+.back-home .icon { transition: transform 0.35s var(--ease); }
+.back-home:hover { color: var(--text); border-color: var(--accent); background: var(--surface-2); }
+.back-home:hover .icon { transform: translateX(-3px); }
+:root[data-contrast="high"] main a.back-home { text-decoration: none; border-width: 2px; }
+
+/* Forms (message form, review form) */
+.form { display: grid; gap: 1.25rem; }
+.form--panel { padding: clamp(1.25rem, 4vw, 2.25rem); }
+.form__row { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.field { display: grid; gap: 0.45rem; align-content: start; }
+.field__label { font-weight: 700; font-size: 0.92rem; color: var(--text); }
+.field__optional { font-weight: 500; color: var(--muted); }
+.field input, .field textarea {
+  width: 100%; font: inherit; color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 0.8rem 1rem;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.field textarea { min-height: 9rem; resize: vertical; line-height: 1.55; }
+.field input:focus, .field textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.field__help { font-size: 0.84rem; color: var(--muted); }
+.field__error { display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; font-weight: 600; color: var(--text); }
+.field__error .icon { color: var(--bad); }
+.field--error input, .field--error textarea { border: 2px solid var(--bad); }
+.form__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem 1.25rem; }
+.form__note { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; color: var(--muted); }
+.form__note .icon { color: var(--accent); }
+.form__trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Message sent */
+.sent { display: grid; gap: 1.2rem; justify-items: start; padding: clamp(1.75rem, 5vw, 3rem); margin-top: 1rem; overflow: hidden; }
+.sent::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: calc(var(--glow) * 0.8);
+  background: radial-gradient(70% 90% at 0% -10%, var(--good), transparent 70%); }
+.sent__icon { display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: 50%;
+  color: var(--good); border: 2px solid currentColor; }
+.sent__icon .icon { width: 1.6rem; height: 1.6rem; stroke-width: 2.4; }
+
+/* Star rating input. The radios run 5..1 and the row is reversed, so "checked ~"
+   fills the chosen star and every star before it. Filled vs. outline, not colour alone. */
+.rate { border: 0; margin: 0; padding: 0; display: grid; gap: 0.35rem; min-width: 0; }
+.rate legend { padding: 0; margin-bottom: 0.35rem; }
+.rate__stars { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; gap: 0.15rem; }
+.rate__input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.rate__star { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 12px; cursor: pointer;
+  color: var(--muted); transition: color 0.2s var(--ease), transform 0.25s var(--ease), background-color 0.2s var(--ease); }
+.rate__star .icon { width: 1.9rem; height: 1.9rem; stroke-width: 1.5; }
+.rate__input:checked ~ .rate__star { color: var(--accent); }
+.rate__input:checked ~ .rate__star .icon { fill: currentColor; }
+.rate__stars:hover .rate__star { color: var(--muted); }
+.rate__stars:hover .rate__star .icon { fill: none; }
+.rate__stars:hover .rate__star:hover, .rate__stars:hover .rate__star:hover ~ .rate__star { color: var(--accent); }
+.rate__stars:hover .rate__star:hover .icon, .rate__stars:hover .rate__star:hover ~ .rate__star .icon { fill: currentColor; }
+.rate__star:hover { transform: scale(1.12); background: var(--surface-2); }
+.rate__input:focus-visible + .rate__star { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Stars shown on a review */
+.stars { display: inline-flex; gap: 0.12rem; color: var(--accent); }
+.stars .icon { width: 1.05rem; height: 1.05rem; stroke-width: 1.6; }
+.stars .icon.is-on { fill: currentColor; }
+.stars .icon:not(.is-on) { color: var(--muted); }
+
+/* Review cards */
+.review-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; color: var(--text-2); }
+.review-stats strong { color: var(--text); font-size: 1.1rem; }
+.reviews { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.review { display: grid; gap: 1rem; align-content: start; padding: 1.5rem 1.5rem 1.4rem; margin: 0; }
+.review__top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.review__quote { width: 1.9rem; height: 1.9rem; color: var(--accent); opacity: 0.35; fill: currentColor; stroke: none; }
+.review__text { margin: 0; font-family: var(--font-display); font-size: 1.12rem; line-height: 1.5; color: var(--text);
+  white-space: pre-line; overflow-wrap: anywhere; }
+.review__by { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; font-size: 0.86rem; color: var(--text-2); }
+.review__name { font-weight: 700; color: var(--text); }
+.review__verified { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; }
+.review__verified .icon { width: 1rem; height: 1rem; color: var(--good); }
+.review__system { color: var(--accent); font-weight: 600; }
+.review__system:hover { text-decoration: underline; }
+
+/* The review section of a receipt's verify page */
+.review-box { display: grid; gap: 1.1rem; padding: clamp(1.25rem, 4vw, 2rem); }
+.review-box__title { font-size: clamp(1.5rem, 3.5vw, 2rem); }
+.review-box__lead { color: var(--text-2); }
+.review-box__sent { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--good) 55%, var(--line)); background: color-mix(in srgb, var(--good) 10%, transparent);
+  font-weight: 600; }
+.review-box__sent .icon { color: var(--good); flex: none; margin-top: 0.15rem; stroke-width: 2.4; }
+.review-box__meta { display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem; color: var(--text-2); font-size: 0.92rem; }
+.review-box__status { font-weight: 700; color: var(--text); }
+.review-box > .btn { justify-self: start; }
+.review-box .review__text { font-size: 1.05rem; }
+.nav__link--phone { display: none; }
+
 /* ---------- 18. Motion ---------------------------------------------------- */
 
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.9s var(--ease), transform 1s var(--ease);
@@ -862,6 +964,7 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
     transition: opacity 0.3s var(--ease), transform 0.4s var(--ease), visibility 0.3s; }
   .nav__links.is-open { opacity: 1; visibility: visible; transform: none; }
   .nav__link { padding: 0.85rem 1rem; }
+  .nav__link--phone { display: block; }
   .nav__link[aria-current="page"]::after { left: auto; right: 1rem; bottom: 50%; transform: translateY(50%); }
   .nav { position: relative; }
   .nav .btn { display: none; }

@@ -1,0 +1,7 @@
+{# "Back to the homepage" link at the top of every page except the homepage. #}
+<div class="container{% if narrow %} container--narrow{% endif %} back-bar">
+  <a class="back-home" href="{% url 'showcase:home' %}">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left"/></svg>
+    Back to the homepage
+  </a>
+</div>

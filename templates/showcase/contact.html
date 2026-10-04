@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{% if sent %}Message sent{% else %}Send me a message{% endif %} &middot; {{ site_name }}{% endblock %}
+{% block description %}Tell {{ owner_name }} about the system you need. Your message goes straight to {{ owner_name }}.{% endblock %}
+{% block back %}{% include "showcase/_back.html" with narrow=True %}{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  {% if sent %}
+    <section class="panel sent" aria-labelledby="sent-title">
+      <span class="sent__icon" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-check"/></svg>
+      </span>
+      <p class="eyebrow">Message sent</p>
+      <h1 class="page-title" id="sent-title">Thank you, <em>{{ sent.name }}</em></h1>
+      <p class="lede">Your message reached me. I read every message myself and will reply to you at
+        <strong>{{ sent.contact }}</strong>.</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="{% url 'showcase:home' %}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to the homepage
+        </a>
+        <a class="btn btn--ghost" href="{% url 'showcase:system_list' %}">Browse the systems</a>
+      </div>
+    </section>
+
+  {% else %}
+    <header class="page-head">
+      <p class="eyebrow">Get in touch</p>
+      <h1 class="page-title">Send me a <em>message</em></h1>
+      <p class="lede">
+        Tell me about the system you need, or ask me anything. Your message comes straight to me, not to a
+        bot, and I'll reply to you personally.
+      </p>
+    </header>
+
+    <form class="panel form form--panel reveal" method="post" action="{% url 'showcase:contact' %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <p class="form-error" role="alert"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg>{{ form.non_field_errors.0 }}</p>
+      {% endif %}
+      <div class="form__row">
+        {% include "showcase/_field.html" with field=form.name %}
+        {% include "showcase/_field.html" with field=form.contact %}
+      </div>
+      {% include "showcase/_field.html" with field=form.message %}
+      <div class="form__row">
+        {% include "showcase/_field.html" with field=form.budget %}
+        {% include "showcase/_field.html" with field=form.deadline %}
+      </div>
+      <div class="form__trap" aria-hidden="true">
+        <label for="{{ form.website.id_for_label }}">Leave this field empty</label>{{ form.website }}
+      </div>
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-send"/></svg>Send message
+        </button>
+        <p class="form__note">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg>
+          Only I can read it. It is never shown on this site.
+        </p>
+      </div>
+    </form>
+
+    <p class="note reveal" style="margin-top:1.25rem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chat"/></svg>
+      <span><strong>Just a quick question?</strong> The assistant can tell you about my systems, how a project goes,
+        or how receipts are verified. <a href="#chat" data-chat-open style="color:var(--accent);font-weight:700">Ask the assistant</a></span>
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

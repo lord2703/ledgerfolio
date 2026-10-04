@@ -16,7 +16,7 @@ from PIL import Image
 
 from ledger.testing import LocalNodeMixin
 from tracker.models import (
-    Client, Lead, Payment, Project, ProjectScreenshot, Receipt, UnansweredQuestion,
+    Client, Lead, Payment, Project, ProjectScreenshot, Receipt, Review, UnansweredQuestion,
 )
 from tracker.services import receipts as receipt_service
 
@@ -59,6 +59,7 @@ class ShowcasePrivacyTests(LedgerBackedTestCase):
             reverse("showcase:system_detail", args=[self.public.slug]),
             reverse("showcase:ledger"),
             reverse("showcase:verify_lookup"),
+            reverse("showcase:contact"),
         ]
 
     def test_public_pages_show_the_public_system(self):
@@ -183,7 +184,9 @@ class VerifyPageTests(LedgerBackedTestCase):
     def test_page_is_kept_out_of_search_engines_and_referrers(self):
         response = self.client.get(self.url)
         self.assertEqual(response["X-Robots-Tag"], "noindex, nofollow")
-        self.assertEqual(response["Referrer-Policy"], "no-referrer")
+        # Other sites never get the link; this site still does, so the review
+        # form's POST carries a real Origin for the CSRF check.
+        self.assertEqual(response["Referrer-Policy"], "same-origin")
         self.assertIn("no-store", response["Cache-Control"])
 
     def test_tampered_receipt(self):
@@ -214,6 +217,139 @@ class VerifyPageTests(LedgerBackedTestCase):
                             "No receipt matches")
 
 
+class BackLinkTests(LedgerBackedTestCase):
+    def test_every_page_but_the_homepage_links_back(self):
+        for name, args in (("showcase:system_list", []), ("showcase:system_detail", [self.public.slug]),
+                           ("showcase:ledger", []), ("showcase:verify_lookup", []),
+                           ("showcase:contact", [])):
+            self.assertContains(self.client.get(reverse(name, args=args)), "Back to the homepage")
+        self.assertNotContains(self.client.get(reverse("showcase:home")), "Back to the homepage")
+
+
+class MessageFormTests(TestCase):
+    """The message form: what visitors write lands in the Tracker's Messages."""
+
+    def setUp(self):
+        cache.clear()
+        self.url = reverse("showcase:contact")
+
+    def send(self, **fields):
+        data = {"name": "Juan dela Cruz", "contact": "juan@example.com",
+                "message": "An online enrollment system for our senior high school.",
+                "budget": "around 15,000", "deadline": "before March", "website": ""}
+        data.update(fields)
+        return self.client.post(self.url, data)
+
+    def test_message_reaches_the_tracker(self):
+        self.assertRedirects(self.send(), f"{self.url}?sent=1", fetch_redirect_response=False)
+        lead = Lead.objects.get()
+        self.assertEqual((lead.name, lead.contact, lead.budget, lead.deadline),
+                         ("Juan dela Cruz", "juan@example.com", "around 15,000", "before March"))
+        self.assertEqual((lead.source, lead.status), (Lead.Source.WEBSITE, Lead.Status.NEW))
+        self.assertIn("enrollment", lead.system_idea)
+
+        thanks = self.client.get(f"{self.url}?sent=1")
+        self.assertContains(thanks, "Thank you")
+        self.assertContains(thanks, "juan@example.com")
+        # The thank-you page shows once; reloading it brings back the empty form.
+        self.assertContains(self.client.get(f"{self.url}?sent=1"), 'name="message"')
+
+    def test_mistakes_are_explained_and_nothing_is_saved(self):
+        response = self.send(name="", message="hi")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "field__error")
+        self.assertContains(self.send(contact="juan@"), "looks incomplete")
+        self.assertEqual(Lead.objects.count(), 0)
+
+    def test_bots_that_fill_the_hidden_field_save_nothing(self):
+        self.assertEqual(self.send(website="http://spam.example").status_code, 302)
+        self.assertEqual(Lead.objects.count(), 0)
+
+    def test_too_many_messages_from_one_visitor(self):
+        for _ in range(5):
+            self.send()
+        self.assertContains(self.send(), "short time")
+        self.assertEqual(Lead.objects.count(), 5)
+
+    def test_a_system_page_can_prefill_the_message(self):
+        self.assertContains(self.client.get(self.url, {"about": "Clinic Records System"}),
+                            "I&#x27;d like a system like Clinic Records System.")
+
+
+class ReviewTests(LedgerBackedTestCase):
+    """Clients review from their receipt's verify page; the owner approves."""
+
+    def setUp(self):
+        super().setUp()
+        payment = Payment.objects.create(
+            project=self.public, amount=Decimal("5000"), date=datetime.date(2026, 9, 1)
+        )
+        self.receipt = receipt_service.generate_and_send(payment, send_email=False).receipt
+        self.url = reverse("showcase:verify", args=[self.receipt.public_token])
+
+    def write(self, url=None, **fields):
+        data = {"rating": "5", "comment": "Great work, delivered before our defense.",
+                "display_name": "Ana, BSIT student"}
+        data.update(fields)
+        return self.client.post(url or self.url, data)
+
+    def test_review_waits_for_approval_then_appears_on_the_site(self):
+        self.assertContains(self.client.get(self.url), "How was working with")
+        self.assertRedirects(self.write(), f"{self.url}?review=sent#review", fetch_redirect_response=False)
+        review = Review.objects.get()
+        self.assertEqual((review.rating, review.status, review.project_id, review.receipt_id),
+                         (5, Review.Status.PENDING, self.public.pk, self.receipt.pk))
+        page = self.client.get(f"{self.url}?review=sent")
+        self.assertContains(page, "Your review was sent")
+        self.assertContains(page, "Waiting for approval")
+
+        home, detail = reverse("showcase:home"), reverse("showcase:system_detail", args=[self.public.slug])
+        self.assertNotContains(self.client.get(home), "delivered before our defense")
+        review.status = Review.Status.APPROVED
+        review.save()
+        for url in (home, detail):
+            html = self.client.get(url)
+            self.assertContains(html, "delivered before our defense")
+            self.assertContains(html, "Ana, BSIT student")
+            self.assertContains(html, "Verified client")
+
+    def test_writing_again_replaces_the_review_and_needs_approval_again(self):
+        self.write()
+        Review.objects.update(status=Review.Status.APPROVED)
+        self.assertContains(self.client.get(f"{self.url}?review=edit"), "Edit your review")
+        self.write(rating="4", comment="Edited: still very happy with the system.")
+        review = Review.objects.get()
+        self.assertEqual((review.rating, review.status), (4, Review.Status.PENDING))
+
+    def test_incomplete_review_shows_errors(self):
+        response = self.write(rating="", comment="ok")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Choose from 1 to 5 stars")
+        self.assertEqual(Review.objects.count(), 0)
+
+    def test_review_of_a_private_project_never_names_it(self):
+        payment = Payment.objects.create(
+            project=self.private, amount=Decimal("1000"), date=datetime.date(2026, 9, 2)
+        )
+        receipt = receipt_service.generate_and_send(payment, send_email=False).receipt
+        self.write(reverse("showcase:verify", args=[receipt.public_token]),
+                   comment="Very good work on our payroll.", display_name="")
+        Review.objects.update(status=Review.Status.APPROVED)
+        home = self.client.get(reverse("showcase:home")).content.decode()
+        self.assertIn("Very good work on our payroll.", home)
+        for secret in PRIVATE_STRINGS:
+            self.assertNotIn(secret, home)
+
+    def test_only_a_real_receipt_link_can_review(self):
+        response = self.write(reverse("showcase:verify", args=["x" * 43]))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(Review.objects.count(), 0)
+
+    def test_tampered_receipt_shows_no_review_form(self):
+        Receipt.objects.filter(pk=self.receipt.pk).update(amount=Decimal("50.00"))
+        self.assertNotContains(self.client.get(self.url), "How was working with")
+
+
 def post(browser, message):
     return browser.post(
         reverse("showcase:chat"), data=json.dumps({"message": message}),
@@ -241,35 +377,18 @@ class ChatApiTests(LedgerBackedTestCase):
             for secret in PRIVATE_STRINGS:
                 self.assertNotIn(secret, reply, f"{secret!r} leaked answering {question!r}")
 
-    def test_inquiry_becomes_a_lead(self):
-        self.say("I want a system built")
-        self.say("Juan dela Cruz")
-        self.say("juan@example.com")
-        self.say("An online enrollment system for our senior high school")
-        self.say("around 15,000 pesos")
-        summary = self.say("before March")
-        self.assertIn("Juan dela Cruz", summary["reply"])
-        self.assertEqual(Lead.objects.count(), 0)  # nothing saved before the visitor confirms
-        done = self.say("yes")
-        self.assertTrue(done["lead_created"])
-
-        lead = Lead.objects.get()
-        self.assertEqual(lead.name, "Juan dela Cruz")
-        self.assertEqual(lead.contact, "juan@example.com")
-        self.assertIn("enrollment", lead.system_idea)
-        self.assertEqual((lead.status, lead.source), (Lead.Status.NEW, Lead.Source.CHATBOT))
-
-    def test_cancelled_inquiry_saves_nothing(self):
-        self.say("I want to hire you")
-        self.say("Juan")
-        self.assertIn("cancel", self.say("cancel")["reply"].lower())
+    def test_inquiries_are_passed_to_the_owner(self):
+        reply = self.say("I want a system built")
+        self.assertIn(reverse("showcase:contact"), [link["url"] for link in reply["links"]])
+        self.assertIn("personally", reply["reply"])
+        self.say("Juan dela Cruz")  # the chat never collects details
         self.assertEqual(Lead.objects.count(), 0)
 
-    def test_unsure_questions_are_logged_and_offer_contact(self):
+    def test_unsure_questions_are_logged_and_point_to_the_owner(self):
         reply = self.say("zxqv blorptang wibble")
         self.assertIn("not sure", reply["reply"])
         self.assertEqual(UnansweredQuestion.objects.count(), 1)
-        self.assertIn("name", self.say("yes")["reply"])  # accepts the offer, starts the inquiry
+        self.assertIn(reverse("showcase:contact"), [link["url"] for link in reply["links"]])
 
     def test_bad_requests(self):
         self.assertEqual(post(self.client, "   ").status_code, 400)

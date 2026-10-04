@@ -1,0 +1,2 @@
+{# Five stars, the first `rating` filled. Filled and empty stars differ in shape, not only colour. #}
+<span class="stars" role="img" aria-label="Rated {{ rating }} out of 5">{% for n in "12345" %}<svg class="icon{% if forloop.counter <= rating %} is-on{% endif %}" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>{% endfor %}</span>

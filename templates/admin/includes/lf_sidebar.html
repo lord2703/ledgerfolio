@@ -6,6 +6,7 @@
 {% url 'admin:tracker_receipt_changelist' as receipts_url %}
 {% url 'admin:tracker_client_changelist' as clients_url %}
 {% url 'admin:tracker_lead_changelist' as leads_url %}
+{% url 'admin:tracker_review_changelist' as reviews_url %}
 {% url 'admin:tracker_unansweredquestion_changelist' as questions_url %}
 {% url 'admin:auth_user_changelist' as users_url %}
 {% url 'admin:auth_group_changelist' as groups_url %}
@@ -39,7 +40,8 @@
     <a class="lf-nav__item" href="{{ clients_url }}"{% if clients_url in request.path %} aria-current="page"{% endif %}><svg class="lf-i" aria-hidden="true"><use href="#lf-i-users"/></svg><span>Clients</span></a>
 
     <p class="lf-nav__label">Engagement</p>
-    <a class="lf-nav__item" href="{{ leads_url }}"{% if leads_url in request.path %} aria-current="page"{% endif %}><svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg><span>Inquiries</span>{% if nav.new_leads %}<span class="lf-nav__badge" title="{{ nav.new_leads }} new">{{ nav.new_leads }}</span>{% endif %}</a>
+    <a class="lf-nav__item" href="{{ leads_url }}"{% if leads_url in request.path %} aria-current="page"{% endif %}><svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg><span>Messages</span>{% if nav.new_leads %}<span class="lf-nav__badge" title="{{ nav.new_leads }} new">{{ nav.new_leads }}</span>{% endif %}</a>
+    <a class="lf-nav__item" href="{{ reviews_url }}"{% if reviews_url in request.path %} aria-current="page"{% endif %}><svg class="lf-i" aria-hidden="true"><use href="#lf-i-star"/></svg><span>Reviews</span>{% if nav.pending_reviews %}<span class="lf-nav__badge" title="{{ nav.pending_reviews }} waiting for approval">{{ nav.pending_reviews }}</span>{% endif %}</a>
     <a class="lf-nav__item" href="{{ questions_url }}"{% if questions_url in request.path %} aria-current="page"{% endif %}><svg class="lf-i" aria-hidden="true"><use href="#lf-i-spark"/></svg><span>Assistant log</span></a>
 
     <p class="lf-nav__label">Accounts</p>

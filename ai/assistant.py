@@ -4,17 +4,22 @@
             -> answer filled from the live public project list or a template
 
 If the classifier is unsure it says so, logs the question so the dataset can
-grow, and offers to take the visitor's contact details instead of guessing.
+grow, and points the visitor to the owner instead of guessing. Inquiries are
+never taken in the chat: the owner answers them personally, so the assistant
+hands the visitor a link to the site's message form.
 """
 
+import re
 from dataclasses import dataclass, field
 
-from . import dialog
 from .inference import IntentModel
 from .retrieval import KnowledgeBase
 
 MAX_MESSAGE_LENGTH = 500
-MAX_LEADS_PER_CONVERSATION = 3
+
+
+def clean(text: str, limit: int) -> str:
+    return re.sub(r"\s+", " ", text).strip()[:limit]
 
 
 @dataclass
@@ -25,6 +30,7 @@ class Owner:
     email: str = ""
     phone: str = ""
     site_name: str = "Ledgerfolio"
+    contact_url: str = "/contact/"  # the site's message form
 
 
 @dataclass
@@ -35,7 +41,6 @@ class Reply:
     confidence: float = 0.0
     suggestions: list = field(default_factory=list)
     links: list = field(default_factory=list)  # [{"label": ..., "url": ...}]
-    lead_created: bool = False
 
 
 DEFAULT_SUGGESTIONS = ["What systems have you built?", "How does working with you go?",
@@ -59,11 +64,10 @@ def _listing(items, limit=6):
 
 class Assistant:
     def __init__(self, model: IntentModel | None, knowledge: KnowledgeBase, owner: Owner,
-                 create_lead=None, log_unanswered=None, threshold: float = 0.55):
+                 log_unanswered=None, threshold: float = 0.55):
         self.model = model
         self.kb = knowledge
         self.owner = owner
-        self.create_lead = create_lead
         self.log_unanswered = log_unanswered
         self.threshold = threshold
 
@@ -73,13 +77,11 @@ class Assistant:
 
     def reply(self, message: str, state: dict | None = None) -> Reply:
         state = dict(state or {})
-        message = dialog.clean(message or "", MAX_MESSAGE_LENGTH)
+        state.pop("lead", None)  # left over from conversations before the message form
+        message = clean(message or "", MAX_MESSAGE_LENGTH)
         if not message:
             return Reply("Type a question and I'll do my best to help.", state,
                          suggestions=DEFAULT_SUGGESTIONS)
-
-        if state.get("lead"):
-            return self._continue_lead(message, state)
 
         offered = state.pop("offer", None)
         if self.model is None:
@@ -92,8 +94,8 @@ class Assistant:
         prediction = self.model.predict(match.masked)
         intent, confidence = prediction.intent, prediction.confidence
 
-        if offered == "lead" and intent == "affirm" and confidence >= self.threshold:
-            return self._start_lead(state, intent, confidence)
+        if offered == "contact" and intent == "affirm" and confidence >= self.threshold:
+            return self._send_to_owner(state, intent, confidence)
 
         if confidence < self.threshold:
             return self._unsure(message, state, intent, confidence)
@@ -104,54 +106,34 @@ class Assistant:
         return reply
 
     # ------------------------------------------------------------------
-    # Unsure, and inquiry capture
+    # Unsure, and handing over to the owner
     # ------------------------------------------------------------------
 
     def _unsure(self, message, state, intent, confidence, reason=None) -> Reply:
         if self.log_unanswered:
             self.log_unanswered(message, intent, confidence)
-        state["offer"] = "lead"
+        state["offer"] = "contact"
         text = reason or "I'm not sure I understood that, and I'd rather not guess."
         return Reply(
-            f"{text} I can tell you about the systems {self.owner.name} has built, how projects "
-            f"and receipts work, or I can take your contact details so {self.owner.name} can "
-            "answer you personally. Would you like me to do that?",
-            state, intent=intent, confidence=confidence,
-            suggestions=["Yes, take my details", "What systems have you built?"],
-        )
-
-    def _start_lead(self, state, intent="make_inquiry", confidence=1.0) -> Reply:
-        if state.get("leads_sent", 0) >= MAX_LEADS_PER_CONVERSATION:
-            return Reply(
-                f"I've already passed your inquiries to {self.owner.name}. "
-                "They will get back to you soon.", state, intent=intent, confidence=confidence,
-            )
-        state["lead"], question = dialog.start(self.owner.name)
-        return Reply(question, state, intent=intent, confidence=confidence)
-
-    def _continue_lead(self, message, state) -> Reply:
-        lead_state, text, finished = dialog.advance(state["lead"], message, self.owner.name)
-        if lead_state is None:
-            state.pop("lead", None)
-        else:
-            state["lead"] = lead_state
-
-        if finished is None:
-            return Reply(text, state, intent="make_inquiry", confidence=1.0)
-
-        if self.create_lead is None:
-            return Reply(
-                "Sorry, I couldn't save your inquiry just now. Please try again in a bit.",
-                state, intent="make_inquiry",
-            )
-        self.create_lead(finished)
-        state["leads_sent"] = state.get("leads_sent", 0) + 1
-        return Reply(
-            f"Sent! {self.owner.name} will reach out to you at {finished['contact']}. "
-            "Thank you, and feel free to look around the systems in the meantime.",
-            state, intent="make_inquiry", confidence=1.0, lead_created=True,
+            f"{text} I can tell you about the systems {self.owner.name} has built and how projects "
+            f"and receipts work. For anything else, send {self.owner.name} a message and you'll "
+            "get a personal reply.",
+            state, intent=intent, confidence=confidence, links=self._message_link(),
             suggestions=["What systems have you built?", "How does working with you go?"],
         )
+
+    def _send_to_owner(self, state, intent="make_inquiry", confidence=1.0) -> Reply:
+        owner = self.owner.name
+        return Reply(
+            f"{owner} answers every inquiry personally, so I'll pass you over. Use the button "
+            f"below to send {owner} a message: your name, how to reach you, and a sentence or two "
+            f"about the system you need. {owner} will reply to you directly.",
+            state, intent=intent, confidence=confidence, links=self._message_link(),
+            suggestions=["How does working with you go?", "What systems have you built?"],
+        )
+
+    def _message_link(self):
+        return [{"label": f"Send {self.owner.name} a message", "url": self.owner.contact_url}]
 
     # ------------------------------------------------------------------
     # Helpers
@@ -175,9 +157,9 @@ class Assistant:
 
     def _no_projects(self, state) -> Reply:
         return Reply(
-            f"{self.owner.name} hasn't published any systems here yet. Check back soon, or I can "
-            "take your details if you'd like a system built.",
-            state, suggestions=["I want a system built"],
+            f"{self.owner.name} hasn't published any systems here yet. Check back soon, or send "
+            f"{self.owner.name} a message if you'd like a system built.",
+            state, links=self._message_link(),
         )
 
     @staticmethod
@@ -216,7 +198,7 @@ class Assistant:
             "tech stack, objectives and purpose\n"
             "• explain how a project goes and what each status means\n"
             "• explain how receipts and blockchain verification work\n"
-            "• take down your details if you want a system built",
+            f"• point you to the message form, so you can write to {self.owner.name} directly",
             state, suggestions=DEFAULT_SUGGESTIONS,
         )
 
@@ -338,7 +320,7 @@ class Assistant:
         owner = self.owner.name
         return Reply(
             "Here is how a project goes:\n"
-            f"1. Inquiry: you tell {owner} what system you need (I can take that down for you).\n"
+            f"1. Inquiry: you send {owner} a message about the system you need.\n"
             f"2. Quotation: {owner} reviews it and gives you a price and timeline.\n"
             "3. In development: the system is built.\n"
             "4. Ready for pre-oral: it is complete enough to present at your pre-oral defense.\n"
@@ -378,22 +360,20 @@ class Assistant:
         )
 
     def _on_ask_pricing(self, match, state) -> Reply:
-        state["offer"] = "lead"
         return Reply(
             "The price depends on what the system needs to do, so there's no fixed price list. "
             f"{self.owner.name} gives each project its own quotation, payments can be made in "
-            "parts, and every payment gets a verifiable receipt. Would you like me to take your "
-            "details so you can get a quotation?",
-            state, suggestions=["Yes, take my details", "How does working with you go?"],
+            "parts, and every payment gets a verifiable receipt. To get a quotation, send "
+            f"{self.owner.name} a message about what you need.",
+            state, links=self._message_link(), suggestions=["How does working with you go?"],
         )
 
     def _on_ask_timeline(self, match, state) -> Reply:
-        state["offer"] = "lead"
         return Reply(
             "It depends on the size of the system and your deadline, so "
-            f"{self.owner.name} confirms the timeline per project. If you tell me what you need "
-            "and when you need it, I'll pass it along. Shall I take your details?",
-            state, suggestions=["Yes, take my details"],
+            f"{self.owner.name} confirms the timeline per project. Send {self.owner.name} a "
+            "message with what you need and when you need it.",
+            state, links=self._message_link(),
         )
 
     def _on_ask_contact(self, match, state) -> Reply:
@@ -401,21 +381,15 @@ class Assistant:
         ways = [f"email {owner.email}" if owner.email else "", f"call or text {owner.phone}"
                 if owner.phone else ""]
         ways = [way for way in ways if way]
-        state["offer"] = "lead"
-        if ways:
-            return Reply(
-                f"You can {' or '.join(ways)}. Or I can take your details here and "
-                f"{owner.name} will contact you. Would you like that?",
-                state, suggestions=["Yes, take my details"],
-            )
+        also = f"You can also {' or '.join(ways)}. " if ways else ""
         return Reply(
-            f"The easiest way is to leave your details with me, and {owner.name} will contact "
-            "you directly. Would you like to do that?",
-            state, suggestions=["Yes, take my details"],
+            f"The easiest way is the message form on this site: it goes straight to {owner.name}, "
+            f"who replies personally. {also}".strip(),
+            state, links=self._message_link(),
         )
 
     def _on_make_inquiry(self, match, state) -> Reply:
-        return self._start_lead(state)
+        return self._send_to_owner(state)
 
     # ------------------------------------------------------------------
     # Boundaries
@@ -432,6 +406,7 @@ class Assistant:
     def _on_out_of_scope(self, match, state) -> Reply:
         return Reply(
             f"That's outside what I can help with. I only know about {self.owner.name}'s "
-            "systems, how projects and receipts work, and how to take an inquiry.",
-            state, suggestions=DEFAULT_SUGGESTIONS,
+            f"systems and how projects and receipts work. To ask {self.owner.name} directly, "
+            "send a message.",
+            state, suggestions=DEFAULT_SUGGESTIONS, links=self._message_link(),
         )

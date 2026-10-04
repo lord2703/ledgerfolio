@@ -55,7 +55,7 @@
     </article>
 
     <a class="lf-kpi lf-kpi--link" href="{{ dash.leads_url }}">
-      <div class="lf-kpi__head"><span class="lf-kpi__icon"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg></span>New inquiries</div>
+      <div class="lf-kpi__head"><span class="lf-kpi__icon"><svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg></span>New messages</div>
       <p class="lf-kpi__value">{{ dash.new_leads }}</p>
       <p class="lf-kpi__foot">{% if dash.new_leads %}Waiting for a reply <svg class="lf-i" aria-hidden="true"><use href="#lf-i-arrow-right"/></svg>{% else %}You're all caught up{% endif %}</p>
     </a>
@@ -186,7 +186,7 @@
 
     <section class="lf-card" aria-labelledby="leads-title">
       <header class="lf-card__head">
-        <div><h2 id="leads-title">Inquiries</h2><p>From the Portfolio Assistant</p></div>
+        <div><h2 id="leads-title">Messages</h2><p>From the message form on your site</p></div>
         <a class="lf-link" href="{{ leads_url }}">View all</a>
       </header>
       {% if dash.recent_leads %}
@@ -204,7 +204,7 @@
       {% else %}
         <div class="lf-empty">
           <svg class="lf-i" aria-hidden="true"><use href="#lf-i-inbox"/></svg>
-          <p>No inquiries yet. The assistant on your public site collects them.</p>
+          <p>No messages yet. They arrive here when someone uses the message form on your site.</p>
         </div>
       {% endif %}
     </section>
@@ -236,6 +236,8 @@
       </header>
       <dl class="lf-kv">
         <div><dt>Systems on display</dt><dd>{{ dash.public_count }} of {{ dash.project_count }}</dd></div>
+        <div><dt>Reviews waiting for approval</dt><dd>{% if dash.pending_reviews %}<a href="{{ dash.reviews_url }}">{{ dash.pending_reviews }}</a>{% else %}0{% endif %}</dd></div>
+        <div><dt>Reviews on the site</dt><dd>{{ dash.published_reviews }}</dd></div>
         <div><dt>Assistant questions to review</dt><dd>{% if dash.unreviewed_questions %}<a href="{% url 'admin:tracker_unansweredquestion_changelist' %}?reviewed__exact=0">{{ dash.unreviewed_questions }}</a>{% else %}0{% endif %}</dd></div>
       </dl>
       <div class="lf-card__actions">

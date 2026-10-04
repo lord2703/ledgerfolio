@@ -12,7 +12,7 @@ from django.utils.timesince import timesince
 
 from ledger import services as ledger
 from ledger.client import NodeClient
-from tracker.models import ZERO, Lead, Payment, Project, Receipt, UnansweredQuestion
+from tracker.models import ZERO, Lead, Payment, Project, Receipt, Review, UnansweredQuestion
 from tracker.ui import LEAD_TONES, LEDGER_TONES, STATUS_TONES, compact_number, money_short
 
 register = template.Library()
@@ -193,7 +193,11 @@ def tracker_dashboard(context):
     else:
         summary = "Add your first project to start tracking payments and receipts."
     if new_leads:
-        summary += f" {new_leads} new inquir{'ies are' if new_leads != 1 else 'y is'} waiting for a reply."
+        summary += f" {new_leads} new message{'s are' if new_leads != 1 else ' is'} waiting for a reply."
+    pending_reviews = Review.objects.filter(status=Review.Status.PENDING).count()
+    if pending_reviews:
+        summary += (f" {pending_reviews} review{'s are' if pending_reviews != 1 else ' is'} "
+                    "waiting for your approval.")
 
     return {
         "greeting": greeting(now.hour),
@@ -223,6 +227,9 @@ def tracker_dashboard(context):
         "receipts_waiting": receipts_total - receipt_counts.get(Receipt.LedgerStatus.CONFIRMED, 0),
         "payments_without_receipt": Payment.objects.filter(receipts__isnull=True).count(),
         "unreviewed_questions": UnansweredQuestion.objects.filter(reviewed=False).count(),
+        "pending_reviews": pending_reviews,
+        "published_reviews": Review.objects.filter(status=Review.Status.APPROVED).count(),
+        "reviews_url": f"{reverse('admin:tracker_review_changelist')}?status__exact=pending",
         "chain": chain,
     }
 
@@ -230,4 +237,7 @@ def tracker_dashboard(context):
 @register.simple_tag
 def tracker_nav_counts():
     """Small numbers shown next to sidebar items."""
-    return {"new_leads": Lead.objects.filter(status=Lead.Status.NEW).count()}
+    return {
+        "new_leads": Lead.objects.filter(status=Lead.Status.NEW).count(),
+        "pending_reviews": Review.objects.filter(status=Review.Status.PENDING).count(),
+    }

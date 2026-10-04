@@ -58,6 +58,7 @@
           <a class="nav__link" href="{% url 'showcase:system_list' %}" {% if page == 'system_list' or page == 'system_detail' %}aria-current="page"{% endif %}>Systems</a>
           <a class="nav__link" href="{% url 'showcase:ledger' %}" {% if page == 'ledger' %}aria-current="page"{% endif %}>Ledger</a>
           <a class="nav__link" href="{% url 'showcase:verify_lookup' %}" {% if page == 'verify_lookup' or page == 'verify' %}aria-current="page"{% endif %} aria-label="Verify a receipt">Verify<span class="nav__more"> a receipt</span></a>
+          <a class="nav__link nav__link--phone" href="{% url 'showcase:contact' %}" {% if page == 'contact' %}aria-current="page"{% endif %}>Message me</a>
         </div>
 
         <button class="icon-btn theme-toggle" id="theme-toggle" type="button" aria-label="Switch between dark and light mode">
@@ -67,7 +68,9 @@
         <button class="icon-btn" id="a11y-toggle" type="button" aria-label="Display and accessibility settings" aria-expanded="false" aria-controls="a11y-panel">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg>
         </button>
-        <a class="btn btn--primary btn--sm" href="#chat" data-chat-open>Start an inquiry</a>
+        <a class="btn btn--primary btn--sm" href="{% url 'showcase:contact' %}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mail"/></svg>Message me
+        </a>
         <button class="icon-btn nav__menu-btn" id="menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-menu"/></svg>
         </button>
@@ -79,6 +82,7 @@
   {% include "showcase/_a11y_panel.html" %}
 
   <main id="main">
+    {% block back %}{% include "showcase/_back.html" %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
 
@@ -106,7 +110,7 @@
         <div>
           <h2>Get in touch</h2>
           <ul>
-            <li><a href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry</a></li>
+            <li><a href="{% url 'showcase:contact' %}">Send me a message</a></li>
             <li><a href="#chat" data-chat-open>Ask the assistant</a></li>
             {% if owner_email %}<li><a href="mailto:{{ owner_email }}">{{ owner_email }}</a></li>{% endif %}
           </ul>

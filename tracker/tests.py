@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from ledger.testing import LocalNodeMixin
 
-from .models import Client, Lead, Payment, Project, Receipt
+from .models import Client, Lead, Payment, Project, Receipt, Review
 from .services import receipts as receipt_service
 from .services.leads import convert_lead
 from .services.pdf import build_receipt_pdf
@@ -293,6 +293,40 @@ class AdminTests(LocalNodeMixin, TestCase):
         projects = self.client.get(reverse("admin:tracker_project_changelist"))
         self.assertContains(projects, "<h1>Projects</h1>", html=False)
         self.assertContains(projects, 'class="lf-filter')
+
+    def test_messages_page_offers_ways_to_reply(self):
+        phone = Lead.objects.create(name="Ana", contact="0917 123 4567", system_idea="A POS system",
+                                    source=Lead.Source.WEBSITE)
+        email = Lead.objects.create(name="Juan", contact="juan@example.com", system_idea="An enrollment system")
+        listing = self.client.get(reverse("admin:tracker_lead_changelist"))
+        self.assertContains(listing, "<h1>Messages</h1>", html=False)
+        self.assertContains(listing, "Message form")
+        ana = self.client.get(reverse("admin:tracker_lead_change", args=[phone.pk]))
+        self.assertContains(ana, 'href="tel:09171234567"')
+        self.assertContains(ana, 'href="sms:09171234567"')
+        juan = self.client.get(reverse("admin:tracker_lead_change", args=[email.pk]))
+        self.assertContains(juan, 'href="mailto:juan@example.com?subject=')
+        self.client.post(reverse("admin:tracker_lead_changelist"),
+                         {"action": "mark_contacted", "_selected_action": [phone.pk]})
+        phone.refresh_from_db()
+        self.assertEqual(phone.get_status_display(), "Replied")
+        self.assertContains(self.client.get(reverse("admin:index")), "New messages")
+
+    def test_reviews_are_approved_from_the_tracker(self):
+        receipt = receipt_service.generate_and_send(self.payment, send_email=False).receipt
+        review = Review.objects.create(project=self.project, receipt=receipt, rating=4,
+                                       comment="Solid work, thank you for the help!")
+        listing = self.client.get(reverse("admin:tracker_review_changelist"))
+        self.assertContains(listing, "<h1>Reviews</h1>", html=False)
+        self.assertContains(listing, "Solid work")
+        self.assertContains(listing, "Waiting for approval")
+        self.assertContains(self.client.get(reverse("admin:index")), "1 review is waiting for your approval")
+        self.assertEqual(self.client.get(reverse("admin:tracker_review_change", args=[review.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("admin:tracker_review_add")).status_code, 403)
+        self.client.post(reverse("admin:tracker_review_changelist"),
+                         {"action": "approve", "_selected_action": [review.pk]})
+        review.refresh_from_db()
+        self.assertEqual(review.status, Review.Status.APPROVED)
 
     def test_search_finds_records_across_the_tracker(self):
         receipt = receipt_service.generate_and_send(self.payment, send_email=False).receipt

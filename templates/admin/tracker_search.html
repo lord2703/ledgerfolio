@@ -7,7 +7,7 @@
   <form class="lf-search lf-search--large" action="{% url 'tracker_search' %}" method="get" role="search">
     <svg class="lf-i" aria-hidden="true"><use href="#lf-i-search"/></svg>
     <label class="sr-only" for="lf-page-search">Search the Tracker</label>
-    <input id="lf-page-search" type="search" name="q" value="{{ query }}" placeholder="Search clients, projects, payments, receipts, inquiries…" autocomplete="off"{% if not query %} autofocus{% endif %}>
+    <input id="lf-page-search" type="search" name="q" value="{{ query }}" placeholder="Search clients, projects, payments, receipts, messages…" autocomplete="off"{% if not query %} autofocus{% endif %}>
     <button type="submit" class="lf-btn lf-btn--primary">Search</button>
   </form>
 

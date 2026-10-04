@@ -59,10 +59,17 @@
         <p class="prose">More details about this system are being written up.</p>
       {% endif %}
 
+      {% if review %}
+        <section aria-labelledby="review-title">
+          <h2 class="block-title" id="review-title">What the client said</h2>
+          {% include "showcase/_review.html" %}
+        </section>
+      {% endif %}
+
       <section class="note reveal">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg>
-        <p><strong>Want something like this?</strong> Tell the assistant what you need and I'll get back to you.
-          <a href="#chat" data-chat-open data-chat-say="I want a system built" style="color:var(--accent);font-weight:700">Start an inquiry</a></p>
+        <p><strong>Want something like this?</strong> Tell me what you need and I'll get back to you personally.
+          <a href="{% url 'showcase:contact' %}?about={{ system.name|urlencode }}" style="color:var(--accent);font-weight:700">Send me a message</a></p>
       </section>
     </div>
 

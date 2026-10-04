@@ -3,15 +3,17 @@
 A freelance client tracker and a public project showcase in one Django project,
 backed by one MySQL database:
 
-- **Tracker (private)**: clients, projects, payments, receipts and inquiries, in a
-  restyled Django admin with a money dashboard.
+- **Tracker (private)**: clients, projects, payments, receipts, messages and client
+  reviews, in a restyled Django admin with a money dashboard.
 - **Showcase (public)**: a portfolio of your public systems with 3D visuals, dark and
-  light themes, colour-vision modes, and a page where clients verify their receipts.
+  light themes, colour-vision modes, a message form that reaches you directly,
+  approved client reviews, and a page where clients verify their receipts.
 - **Blockchain** (`chain_node/`): a from-scratch node with signed transactions,
   proof-of-work, Merkle proofs, a mempool and peer-to-peer sync. Receipts are
   recorded on it so any edit is detectable.
 - **Portfolio Assistant** (`ai/`): a chatbot trained from scratch in PyTorch that
-  answers questions about your public systems and takes down inquiries.
+  answers questions about your public systems and points people who want to hire
+  you to the message form.
 
 The full specification is in [CLAUDE.md](CLAUDE.md).
 
@@ -117,7 +119,7 @@ start.bat
 
 Log in at `/admin/`. Every section is in the sidebar on the left (on a phone or
 tablet, tap the ☰ button). The search box at the top finds any project, client,
-payment, receipt or inquiry; press `/` to jump to it. The ◐ button next to it
+payment, receipt or message; press `/` to jump to it. The ◐ button next to it
 switches between automatic, light and dark mode. On phones, lists turn into
 cards, so nothing needs sideways scrolling.
 
@@ -130,14 +132,20 @@ cards, so nothing needs sideways scrolling.
    "Receipt RCT-2026-0004 issued. Sealed in block #4. Emailed to ...".
    Open the receipt to **Copy link** (send it by Messenger) or **Open PDF**.
    A receipt can't be edited; to correct one, delete it and issue a new one.
-4. **Inquiries**: the chatbot creates these. Use the action **Convert to client +
-   project** when someone hires you.
-5. **Assistant log**: questions the chatbot wasn't sure about. Add good ones to
+4. **Messages**: what visitors send from the **Send me a message** page (`/contact/`).
+   Open one to answer it with the **Reply by email**, **Call** or **Send a text**
+   buttons, then use the action **Mark as replied**. When someone hires you, use
+   **Convert to client + project**. The sidebar shows how many are new.
+5. **Reviews**: clients write these from their receipt's verify page (the QR code
+   link), so every review comes from a real client. Nothing appears on the site
+   until you tick it and choose **Approve and show on the site**; **Hide from the
+   site** takes it down. If a client edits a review, it waits for approval again.
+6. **Assistant log**: questions the chatbot wasn't sure about. Add good ones to
    `ai/data/intents.json`, retrain, and tick *reviewed*.
 
 The **Overview** page shows the outstanding balance, collections, projects by
-status, deadlines within 30 days, recent payments, new inquiries, and whether the
-blockchain is healthy. Amounts on screen use the ₱ sign; receipt PDFs and emails
+status, deadlines within 30 days, recent payments, new messages, reviews waiting
+for approval, and whether the blockchain is healthy. Amounts on screen use the ₱ sign; receipt PDFs and emails
 spell out the code (PHP).
 
 **Statuses**: In development, Ready for pre-oral, Ready for final, Fully paid.
@@ -156,12 +164,17 @@ are ever public: client, price, payments and notes never leave the Tracker.
 
 | Page | Address |
 |---|---|
-| Home: 3D hero, counts, systems, process | `/` |
+| Home: 3D hero, counts, systems, client reviews, process | `/` |
 | All systems, filter by technology | `/systems/` |
-| One system with its 3D preview (drag to rotate) | `/systems/<name>/` |
+| One system with its 3D preview (drag to rotate) and its review | `/systems/<name>/` |
 | The live blockchain | `/ledger/` |
+| Send me a message (lands in the Tracker's Messages) | `/contact/` |
 | Verify a receipt by pasting its link or code | `/verify/` |
-| A receipt's verification result | `/verify/<code>/` |
+| A receipt's verification result, where the client can also write a review | `/verify/<code>/` |
+
+Every page except the homepage has a **Back to the homepage** link at the top. The
+message form is limited to 5 messages an hour per visitor and quietly ignores
+spam bots.
 
 The **eye icon** in the top bar opens the display settings, saved in each
 visitor's own browser:
@@ -247,10 +260,10 @@ the node only accepts transactions you signed.
   placeholders, and a small neural network picks one of 23 intents. The answer is
   filled from your live public projects or from a template.
 - **Unsure?** Below 55% confidence it says so, logs the question in the
-  **Assistant log**, and offers to take the visitor's details.
-- **Inquiries**: it asks for name, contact, the system idea, and optional budget
-  and deadline, shows a summary, and saves an **Inquiry** only after the visitor
-  says yes.
+  **Assistant log**, and offers a button to message you.
+- **Inquiries go to you, not the bot**: when someone wants a system built, asks
+  about prices or timelines, or wants to contact you, it explains briefly and
+  gives them a **Send Lord a message** button that opens the message form.
 - **Privacy**: it is only ever given public project fields. Asked about clients,
   prices or payments, it declines.
 
@@ -399,7 +412,7 @@ tracker/       models, admin, services (receipts, PDF, leads), dashboard, demo d
 showcase/      public pages, chat API, the only bridge to public project data
 ledger/        Django's client for the node: hashing, anchoring, verification
 chain_node/    the blockchain node (FastAPI); never imports Django
-ai/            tokenizer, model, training, retrieval, inquiry dialog, dataset
+ai/            tokenizer, model, training, retrieval, assistant replies, dataset
 templates/     site, admin and email templates
 static/        CSS, JavaScript (3D scenes, chat, display settings), Three.js
 deploy/        Nginx, systemd and backup files for the VPS

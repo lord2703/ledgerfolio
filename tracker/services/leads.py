@@ -1,20 +1,33 @@
-"""Turning an inquiry into real work."""
+"""Messages from the public site, and turning one into real work."""
 
 from django.db import transaction
 
 from tracker.models import Client, Lead, Project
 
 
+def record_message(name: str, contact: str, message: str, budget: str = "",
+                   deadline: str = "") -> Lead:
+    """Save a message someone sent through the public message form."""
+    return Lead.objects.create(
+        name=name.strip(),
+        contact=contact.strip(),
+        system_idea=message.strip(),
+        budget=budget.strip(),
+        deadline=deadline.strip(),
+        source=Lead.Source.WEBSITE,
+    )
+
+
 @transaction.atomic
 def convert_lead(lead: Lead) -> Project:
-    """A converted lead becomes a Client and a Project, ready to be priced."""
+    """A message that became work turns into a Client and a Project, ready to be priced."""
     if lead.status == Lead.Status.CONVERTED and lead.converted_project_id:
         return lead.converted_project
 
     contact_field = "email" if "@" in lead.contact and " " not in lead.contact.strip() else "other_contact"
     client = Client.objects.create(
         name=lead.name,
-        notes=f"From inquiry on {lead.created_at:%Y-%m-%d}.",
+        notes=f"From a message on {lead.created_at:%Y-%m-%d}.",
         **{contact_field: lead.contact.strip()},
     )
     details = [lead.system_idea]

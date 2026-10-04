@@ -2,8 +2,9 @@
 #   sudo cp deploy/systemd/ledgerfolio-web.service /etc/systemd/system/
 #   sudo systemctl daemon-reload && sudo systemctl enable --now ledgerfolio-web
 #
-# Two worker processes with four threads each keeps memory low: every process
-# loads PyTorch for the assistant, and answering a chat message takes ~1 ms.
+# One worker process with four threads keeps memory low: every process loads
+# PyTorch for the assistant, and answering a chat message takes ~1 ms. On a
+# server with 2 GB of RAM or more, --workers 2 handles more visitors at once.
 
 [Unit]
 Description=Ledgerfolio website (Gunicorn)
@@ -14,7 +15,7 @@ User=ledgerfolio
 Group=www-data
 WorkingDirectory=/srv/ledgerfolio
 ExecStart=/srv/ledgerfolio/.venv/bin/gunicorn core.wsgi:application \
-    --bind 127.0.0.1:8000 --workers 2 --threads 4 --worker-class gthread \
+    --bind 127.0.0.1:8000 --workers 1 --threads 4 --worker-class gthread \
     --timeout 60 --access-logfile -
 Restart=always
 RestartSec=3

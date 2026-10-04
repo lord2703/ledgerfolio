@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import DecimalField, F, Sum, Value
 from django.db.models.functions import Coalesce
@@ -302,21 +302,22 @@ class Receipt(models.Model):
 
 
 class Lead(models.Model):
-    """An inquiry from someone who wants a system built (usually via the chatbot)."""
+    """A message to the owner from someone on the public site (shown as "Messages")."""
 
     class Status(models.TextChoices):
         NEW = "new", "New"
-        CONTACTED = "contacted", "Contacted"
-        CONVERTED = "converted", "Converted"
-        DROPPED = "dropped", "Dropped"
+        CONTACTED = "contacted", "Replied"
+        CONVERTED = "converted", "Became a project"
+        DROPPED = "dropped", "Closed"
 
     class Source(models.TextChoices):
+        WEBSITE = "website", "Message form"
         CHATBOT = "chatbot", "Portfolio Assistant"
         MANUAL = "manual", "Added by hand"
 
     name = models.CharField(max_length=150)
     contact = models.CharField(max_length=200, help_text="Email, phone or messaging handle")
-    system_idea = models.TextField()
+    system_idea = models.TextField("message", help_text="What they need, in their own words")
     budget = models.CharField(max_length=120, blank=True)
     deadline = models.CharField(max_length=120, blank=True)
     status = models.CharField(
@@ -331,11 +332,50 @@ class Lead(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name = "inquiry"
-        verbose_name_plural = "inquiries"
+        verbose_name = "message"
+        verbose_name_plural = "messages"
 
     def __str__(self):
         return f"{self.name}: {shorten(self.system_idea, 40)}"
+
+
+class Review(models.Model):
+    """A client's review of their project, left from a receipt's verify page.
+
+    Only someone holding a receipt link can write one, and nothing is shown on
+    the Showcase until the owner approves it. One review per project: writing
+    again replaces it and sends it back for approval.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Waiting for approval"
+        APPROVED = "approved", "Published"
+        HIDDEN = "hidden", "Hidden"
+
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name="review")
+    receipt = models.ForeignKey(
+        Receipt, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        help_text="The receipt link the client used to write it",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)], help_text="1 to 5 stars"
+    )
+    comment = models.TextField(max_length=1000)
+    display_name = models.CharField(
+        max_length=80, blank=True,
+        help_text="Shown with the review. Left empty, the review says \"Verified client\".",
+    )
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.rating}★ for {self.project}: {shorten(self.comment, 40)}"
 
 
 class UnansweredQuestion(models.Model):

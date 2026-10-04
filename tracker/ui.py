@@ -1,11 +1,14 @@
 """Presentation helpers shared by the Tracker admin, its dashboard and its search."""
 
+import re
+from urllib.parse import quote
+
 from django.conf import settings
 from django.utils import timezone
 from django.utils.dateformat import format as date_format
 from django.utils.html import format_html
 
-from .models import Lead, Project, Receipt
+from .models import Lead, Project, Receipt, Review
 from .services.pdf import money
 
 # Screens use the short sign; receipt PDFs keep the code ("PHP 7,000.00").
@@ -28,6 +31,12 @@ LEAD_TONES = {
     Lead.Status.CONVERTED: "good",
     Lead.Status.DROPPED: "muted",
 }
+REVIEW_TONES = {
+    Review.Status.PENDING: "warn",
+    Review.Status.APPROVED: "good",
+    Review.Status.HIDDEN: "muted",
+}
+EMAIL = re.compile(r"[^@\s,;<>]+@[^@\s,;<>]+\.[A-Za-z]{2,}")
 
 
 def badge(label, tone):
@@ -45,6 +54,41 @@ def ledger_badge(receipt):
 
 def lead_badge(lead):
     return badge(lead.get_status_display(), LEAD_TONES.get(lead.status, "muted"))
+
+
+def review_badge(review):
+    return badge(review.get_status_display(), REVIEW_TONES.get(review.status, "muted"))
+
+
+def stars(rating):
+    """Five stars with the first `rating` filled; screen readers hear the number."""
+    rating = max(0, min(5, int(rating or 0)))
+    return format_html(
+        '<span class="lf-stars" role="img" aria-label="{} out of 5 stars">{}<span class="lf-stars__off">{}</span></span>',
+        rating, "★" * rating, "★" * (5 - rating),
+    )
+
+
+def reply_links(contact: str):
+    """Ways to answer a message, picked from the contact the visitor typed.
+
+    Returns [(label, url, icon)]. An email gets a reply link, a phone number
+    gets call and text links, and a web address (Messenger, Facebook) opens.
+    """
+    contact = (contact or "").strip()
+    links = []
+    email = EMAIL.search(contact)
+    if email:
+        subject = quote(f"Re: your message to {settings.OWNER_NAME}")
+        links.append(("Reply by email", f"mailto:{email.group(0)}?subject={subject}", "mail"))
+    number = re.sub(r"[^\d+]", "", contact)
+    if not email and sum(ch.isdigit() for ch in number) >= 7:
+        links.append(("Call", f"tel:{number}", "phone"))
+        links.append(("Send a text", f"sms:{number}", "message"))
+    web = re.search(r"https?://\S+", contact)
+    if web:
+        links.append(("Open their link", web.group(0), "external"))
+    return links
 
 
 def money_short(value) -> str:

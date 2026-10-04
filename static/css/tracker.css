@@ -940,6 +940,14 @@ body.lf {
 .lf .lf-copyfield { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; max-width: 100%; }
 .lf .lf-copyfield a { overflow-wrap: anywhere; }
 .lf .lf-copy { height: 32px; padding: 0 12px; font-size: 0.8rem; }
+
+/* Messages: reply buttons. Reviews: stars and the list cell. */
+.lf a.button.lf-reply { height: 32px; padding: 0 12px; gap: 7px; font-size: 0.8rem; }
+.lf a.button.lf-reply .lf-i { width: 15px; height: 15px; }
+.lf .lf-stars { color: var(--accent-text); font-size: 0.95rem; letter-spacing: 0.06em; white-space: nowrap; }
+.lf .lf-stars__off { color: var(--border-strong); }
+.lf .lf-review { display: grid; gap: 2px; max-width: 440px; white-space: normal; }
+.lf .lf-review > span:last-child { color: var(--text-2); font-size: 0.85rem; line-height: 1.45; }
 .lf .lf-integrity > p { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; color: var(--text-2); }
 .lf form .aligned ul.lf-checks { display: grid; gap: 8px; margin: 0; padding: 0; }
 .lf .lf-check { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }

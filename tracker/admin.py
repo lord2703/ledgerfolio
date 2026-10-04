@@ -18,12 +18,25 @@ from .models import (
     Project,
     ProjectScreenshot,
     Receipt,
+    Review,
     UnansweredQuestion,
     shorten,
 )
 from .services import leads as lead_service
 from .services import receipts as receipt_service
-from .ui import amount, badge, entity, lead_badge, ledger_badge, money_short, project_badge, when
+from .ui import (
+    amount,
+    badge,
+    entity,
+    lead_badge,
+    ledger_badge,
+    money_short,
+    project_badge,
+    reply_links,
+    review_badge,
+    stars,
+    when,
+)
 
 
 def date_filter(title):
@@ -505,30 +518,55 @@ class ReceiptAdmin(TrackerAdminMixin, admin.ModelAdmin):
 
 
 # ----------------------------------------------------------------------
-# Inquiries and assistant log
+# Messages, reviews and assistant log
 # ----------------------------------------------------------------------
 
 @admin.register(Lead)
 class LeadAdmin(TrackerAdminMixin, admin.ModelAdmin):
-    page_description = "Requests from the Portfolio Assistant, and ones you add yourself."
+    page_title = "Messages"
+    page_description = (
+        "What people send you from the message form on your site. Answer with the reply "
+        "buttons, then mark the message as replied."
+    )
     list_display = ("person", "idea", "budget", "deadline", "status_badge", "source", "received")
     list_filter = ("status", "source", ("created_at", date_filter("received")))
     search_fields = ("name", "contact", "system_idea")
-    readonly_fields = ("created_at", "converted_project")
-    actions = ["convert", "mark_contacted", "mark_dropped"]
+    readonly_fields = ("created_at", "converted_project", "reply_options")
+    actions = ["mark_contacted", "convert", "mark_dropped"]
     fieldsets = (
-        ("Who", {"fields": (("name", "contact"),)}),
-        ("What they need", {"fields": ("system_idea", ("budget", "deadline"))}),
+        ("From", {"fields": (("name", "contact"), "reply_options")}),
+        ("What they wrote", {"fields": ("system_idea", ("budget", "deadline"))}),
         ("Follow-up", {"fields": (("status", "source"), "notes", ("converted_project", "created_at"))}),
     )
 
-    @admin.display(description="Inquiry", ordering="name")
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        message = self.get_object(request, object_id) if object_id else None
+        if message is not None:
+            extra_context = {"title": f"Message from {message.name}", **(extra_context or {})}
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    @admin.display(description="From", ordering="name")
     def person(self, obj):
         return entity(obj.name, obj.contact)
 
-    @admin.display(description="System idea")
+    @admin.display(description="Message")
     def idea(self, obj):
         return shorten(obj.system_idea, 70)
+
+    @admin.display(description="Reply")
+    def reply_options(self, obj):
+        if not obj.pk:
+            return "Save the message first."
+        buttons = format_html_join(
+            "", '<a class="button lf-reply" href="{}"{}><svg class="lf-i" aria-hidden="true">'
+            '<use href="#lf-i-{}"/></svg>{}</a>',
+            ((url, format_html(' target="_blank" rel="noopener"') if icon == "external" else "",
+              icon, label) for label, url, icon in reply_links(obj.contact)),
+        )
+        return format_html(
+            '<span class="lf-copyfield">{}<button type="button" class="button lf-copy" '
+            'data-copy="{}">Copy contact</button></span>', buttons, obj.contact,
+        )
 
     @admin.display(description="Status", ordering="status")
     def status_badge(self, obj):
@@ -551,13 +589,74 @@ class LeadAdmin(TrackerAdminMixin, admin.ModelAdmin):
                 ),
             )
 
-    @admin.action(description="Mark as contacted")
+    @admin.action(description="Mark as replied")
     def mark_contacted(self, request, queryset):
-        queryset.update(status=Lead.Status.CONTACTED)
+        count = queryset.update(status=Lead.Status.CONTACTED)
+        self.message_user(request, f"{count} message{'s' if count != 1 else ''} marked as replied.")
 
-    @admin.action(description="Mark as dropped")
+    @admin.action(description="Close (no reply needed)")
     def mark_dropped(self, request, queryset):
-        queryset.update(status=Lead.Status.DROPPED)
+        count = queryset.update(status=Lead.Status.DROPPED)
+        self.message_user(request, f"{count} message{'s' if count != 1 else ''} closed.")
+
+
+@admin.register(Review)
+class ReviewAdmin(TrackerAdminMixin, admin.ModelAdmin):
+    page_description = (
+        "Reviews clients write from their receipt page. Nothing appears on your site until you "
+        "approve it."
+    )
+    list_display = ("review", "project_link", "shown_as", "status_badge", "received")
+    list_filter = ("status", "rating")
+    search_fields = ("comment", "display_name", "project__system_name")
+    list_select_related = ("project",)
+    readonly_fields = ("rating_stars", "comment", "project", "receipt", "created_at", "updated_at")
+    actions = ["approve", "hide"]
+    fieldsets = (
+        ("Review", {"fields": ("rating_stars", "comment", "display_name")}),
+        ("On your site", {"fields": ("status",)}),
+        ("Details", {"fields": (("project", "receipt"), ("created_at", "updated_at"))}),
+    )
+
+    # Reviews come from clients; the owner approves or hides them but never writes them.
+    def has_add_permission(self, request):
+        return False
+
+    @admin.display(description="Review", ordering="rating")
+    def review(self, obj):
+        return format_html('<span class="lf-review">{}<span>{}</span></span>',
+                           stars(obj.rating), shorten(obj.comment, 90))
+
+    @admin.display(description="Rating")
+    def rating_stars(self, obj):
+        return stars(obj.rating)
+
+    @admin.display(description="Project", ordering="project__system_name")
+    def project_link(self, obj):
+        url = reverse("admin:tracker_project_change", args=[obj.project_id])
+        return format_html('<a href="{}">{}</a>', url, obj.project.system_name)
+
+    @admin.display(description="Shown as", ordering="display_name")
+    def shown_as(self, obj):
+        return obj.display_name or "Verified client"
+
+    @admin.display(description="Status", ordering="status")
+    def status_badge(self, obj):
+        return review_badge(obj)
+
+    @admin.display(description="Received", ordering="updated_at")
+    def received(self, obj):
+        return when(obj.updated_at)
+
+    @admin.action(description="Approve and show on the site")
+    def approve(self, request, queryset):
+        count = queryset.update(status=Review.Status.APPROVED)
+        self.message_user(request, f"{count} review{'s' if count != 1 else ''} now on your site.")
+
+    @admin.action(description="Hide from the site")
+    def hide(self, request, queryset):
+        count = queryset.update(status=Review.Status.HIDDEN)
+        self.message_user(request, f"{count} review{'s' if count != 1 else ''} hidden.")
 
 
 @admin.register(UnansweredQuestion)

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block back %}{% endblock %}
+
 {% block content %}
 <div class="container">
 
@@ -105,11 +107,30 @@
       <div class="panel empty reveal">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-layers"/></svg>
         <h2>The first systems are on their way</h2>
-        <p>Nothing has been published here yet. In the meantime, the assistant can take down what you need built.</p>
-        <a class="btn btn--primary" href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry</a>
+        <p>Nothing has been published here yet. In the meantime, tell me what you need built.</p>
+        <a class="btn btn--primary" href="{% url 'showcase:contact' %}">Send me a message</a>
       </div>
     {% endif %}
   </section>
+
+  {% if reviews %}
+    <section class="section" aria-labelledby="reviews-title">
+      <div class="section__head reveal">
+        <p class="eyebrow">Reviews</p>
+        <h2 class="section__title" id="reviews-title">What clients <em>say</em></h2>
+        {% if review_stats %}
+          <p class="review-stats">
+            {% include "showcase/_stars.html" with rating=review_stats.rounded %}
+            <span><strong>{{ review_stats.average }}</strong> out of 5 from {{ review_stats.count }} verified client{{ review_stats.count|pluralize }}.
+              Only someone holding a real receipt can leave a review.</span>
+          </p>
+        {% endif %}
+      </div>
+      <div class="reviews">
+        {% for review in reviews %}{% include "showcase/_review.html" %}{% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
   <section class="section" aria-labelledby="process-title">
     <div class="section__head reveal">
@@ -163,8 +184,8 @@
   <section class="panel cta reveal" aria-labelledby="cta-title">
     <p class="eyebrow">Have something in mind?</p>
     <h2 class="cta__title" id="cta-title">Let's build <em>your system</em></h2>
-    <p class="lede">Tell the assistant what you need. It takes down your details and I'll get back to you personally.</p>
-    <a class="btn btn--primary" href="#chat" data-chat-open data-chat-say="I want a system built">Start an inquiry
+    <p class="lede">Tell me what you need. Your message comes straight to me, not to a bot, and I'll get back to you personally.</p>
+    <a class="btn btn--primary" href="{% url 'showcase:contact' %}">Send me a message
       <svg class="icon icon--arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg>
     </a>
   </section>

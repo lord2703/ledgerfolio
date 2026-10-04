@@ -5,11 +5,14 @@ values that are copied field by field from rows with `is_public=True`, so
 client, price, payments and notes are simply not there to be shown.
 """
 
+import datetime
 from dataclasses import dataclass
 
+from django.db.models import Avg, Count
 from django.urls import reverse
+from django.utils import timezone
 
-from tracker.models import Project
+from tracker.models import Project, Review
 
 PUBLIC_FIELDS = (
     "id", "system_name", "slug", "tagline", "tech_stack", "objectives", "purpose",
@@ -82,6 +85,65 @@ def public_systems() -> list:
 def public_system(slug: str):
     project = _queryset().filter(slug=slug).first()
     return _to_public(project) if project else None
+
+
+@dataclass(frozen=True)
+class PublicReview:
+    """An approved review as the Showcase may show it.
+
+    `name` is only what the client chose to show. The system is named only
+    when that project is itself public.
+    """
+
+    rating: int
+    comment: str
+    name: str
+    system_name: str
+    system_url: str
+    date: datetime.date
+
+
+REVIEW_FIELDS = ("rating", "comment", "display_name", "updated_at",
+                 "project__system_name", "project__slug", "project__is_public")
+
+
+def _approved_reviews():
+    return (
+        Review.objects.filter(status=Review.Status.APPROVED)
+        .select_related("project").only(*REVIEW_FIELDS).order_by("-updated_at")
+    )
+
+
+def _review_to_public(review: Review) -> PublicReview:
+    public = review.project.is_public
+    return PublicReview(
+        rating=review.rating,
+        comment=review.comment,
+        name=review.display_name,
+        system_name=review.project.system_name if public else "",
+        system_url=reverse("showcase:system_detail", args=[review.project.slug]) if public else "",
+        date=timezone.localdate(review.updated_at),
+    )
+
+
+def public_reviews(limit: int = 6) -> list:
+    return [_review_to_public(review) for review in _approved_reviews()[:limit]]
+
+
+def review_summary():
+    """{"count", "average", "rounded"} over approved reviews, or None when there are none."""
+    totals = Review.objects.filter(status=Review.Status.APPROVED).aggregate(
+        count=Count("id"), average=Avg("rating"))
+    if not totals["count"]:
+        return None
+    average = round(float(totals["average"]), 1)
+    return {"count": totals["count"], "average": average, "rounded": int(average + 0.5)}
+
+
+def system_review(slug: str):
+    """The approved review of one public system, if it has one."""
+    review = _approved_reviews().filter(project__slug=slug, project__is_public=True).first()
+    return _review_to_public(review) if review else None
 
 
 def tech_summary(systems) -> list:

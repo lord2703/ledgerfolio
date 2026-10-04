@@ -1,4 +1,4 @@
-"""One search box for the whole Tracker: projects, clients, payments, receipts, inquiries."""
+"""One search box for the whole Tracker: projects, clients, payments, receipts, messages."""
 
 from urllib.parse import urlencode
 
@@ -68,7 +68,7 @@ def search(query):
         _group("Receipts", Receipt, receipts, lambda r: _item(
             r, r.receipt_number, f"{r.client_name} · {r.system_name}", ledger_badge(r)
         ), query),
-        _group("Inquiries", Lead, inquiries, lambda lead: _item(
+        _group("Messages", Lead, inquiries, lambda lead: _item(
             lead, lead.name, shorten(lead.system_idea, 80), lead_badge(lead)
         ), query),
     ]
@@ -82,7 +82,7 @@ def search_view(request):
         **admin.site.each_context(request),
         "title": "Search",
         "page_description": f"Results for “{query}”" if query else
-                            "Find any project, client, payment, receipt or inquiry.",
+                            "Find any project, client, payment, receipt or message.",
         "query": query,
         "groups": groups,
         "total": sum(group["count"] for group in groups),

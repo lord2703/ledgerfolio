@@ -24,7 +24,8 @@ STAMP=$(date +%Y-%m-%d_%H%M)
 mkdir -p "$DEST"
 chmod 700 "$DEST"
 
-mysqldump --single-transaction --routines --triggers ledgerfolio | gzip > "$DEST/db_$STAMP.sql.gz"
+# --no-tablespaces: MySQL 8 otherwise needs the PROCESS privilege, which the app user lacks.
+mysqldump --no-tablespaces --single-transaction --routines --triggers ledgerfolio | gzip > "$DEST/db_$STAMP.sql.gz"
 tar -czf "$DEST/files_$STAMP.tar.gz" -C "$APP" chain_data media private_media
 
 find "$DEST" -type f -mtime +"$KEEP_DAYS" -delete

@@ -1,4 +1,4 @@
-"""Tokenizer, retrieval, inquiry dialog and the assistant's decision logic.
+"""Tokenizer, retrieval and the assistant's decision logic.
 
 These run without Django and, except for the last class, without trained
 weights: a stub model stands in for the classifier.
@@ -7,7 +7,6 @@ weights: a stub model stands in for the classifier.
 import unittest
 from pathlib import Path
 
-from ai import dialog
 from ai.assistant import Assistant, Owner
 from ai.inference import ARTIFACTS_DIR, IntentModel, Prediction
 from ai.retrieval import KnowledgeBase
@@ -102,61 +101,6 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual((match.projects, match.techs), ([], []))
 
 
-class DialogTests(unittest.TestCase):
-    def run_flow(self, answers):
-        state, _ = dialog.start("Lord")
-        finished = None
-        for answer in answers:
-            state, reply, finished = dialog.advance(state, answer, "Lord")
-            if state is None:
-                break
-        return state, reply, finished
-
-    def test_complete_flow(self):
-        state, _, finished = self.run_flow(
-            ["My name is Juan dela Cruz", "juan@example.com",
-             "An inventory system for a hardware store", "skip", "next month", "yes"]
-        )
-        self.assertIsNone(state)
-        self.assertEqual(finished, {
-            "name": "Juan dela Cruz", "contact": "juan@example.com",
-            "idea": "An inventory system for a hardware store", "budget": "", "deadline": "next month",
-        })
-
-    def test_validation_keeps_asking(self):
-        state, _ = dialog.start("Lord")
-        state, reply, _ = dialog.advance(state, "?", "Lord")
-        self.assertEqual(state["step"], "name")
-        state, _, _ = dialog.advance(state, "Ana", "Lord")
-        state, reply, _ = dialog.advance(state, "ana@", "Lord")
-        self.assertEqual(state["step"], "contact")
-        self.assertIn("email", reply)
-        state, _, _ = dialog.advance(state, "0917 123 4567", "Lord")
-        state, reply, _ = dialog.advance(state, "a pos", "Lord")
-        self.assertEqual(state["step"], "idea")
-
-    def test_cancel_and_decline_save_nothing(self):
-        state, reply, finished = self.run_flow(["Ana", "cancel"])
-        self.assertEqual((state, finished), (None, None))
-        state, reply, finished = self.run_flow(
-            ["Ana", "ana@example.com", "A booking system for a salon", "skip", "skip", "no"]
-        )
-        self.assertEqual((state, finished), (None, None))
-        self.assertIn("discarded", reply)
-
-    def test_confirm_needs_a_clear_answer(self):
-        state, reply, finished = self.run_flow(
-            ["Ana", "ana@example.com", "A booking system for a salon", "skip", "skip", "maybe"]
-        )
-        self.assertEqual(state["step"], "confirm")
-        self.assertIsNone(finished)
-
-    def test_input_is_trimmed_to_safe_lengths(self):
-        state, _ = dialog.start("Lord")
-        state, _, _ = dialog.advance(state, "A" * 500, "Lord")
-        self.assertEqual(len(state["data"]["name"]), 80)
-
-
 class StubModel:
     """Predicts whatever the test says, so assistant logic is tested on its own."""
 
@@ -171,14 +115,16 @@ class StubModel:
 
 class AssistantTests(unittest.TestCase):
     def setUp(self):
-        self.leads, self.unanswered = [], []
+        self.unanswered = []
         self.model = StubModel()
         self.assistant = Assistant(
             model=self.model, knowledge=KnowledgeBase(PROJECTS),
-            owner=Owner(name="Lord", email="lord@example.com"),
-            create_lead=self.leads.append,
+            owner=Owner(name="Lord", email="lord@example.com", contact_url="/contact/"),
             log_unanswered=lambda *args: self.unanswered.append(args),
         )
+
+    def assertLinksToMessageForm(self, reply):
+        self.assertIn({"label": "Send Lord a message", "url": "/contact/"}, reply.links)
 
     def ask(self, text, intent, state=None, **model):
         self.model.intent = intent
@@ -222,39 +168,39 @@ class AssistantTests(unittest.TestCase):
         self.assertIn("private", self.ask("who are your clients", "private_data").text)
         self.assertIn("outside", self.ask("what is the weather", "out_of_scope").text)
 
-    def test_low_confidence_says_so_logs_and_offers_contact(self):
+    def test_low_confidence_says_so_logs_and_points_to_the_owner(self):
         reply = self.ask("something odd", "ask_stack", confidence=0.3)
         self.assertIn("not sure", reply.text)
-        self.assertEqual(reply.state["offer"], "lead")
+        self.assertLinksToMessageForm(reply)
         self.assertEqual(self.unanswered, [("something odd", "ask_stack", 0.3)])
         accepted = self.ask("yes", "affirm", reply.state)
-        self.assertEqual(accepted.state["lead"]["step"], "name")
+        self.assertLinksToMessageForm(accepted)
 
     def test_confidence_exactly_at_the_threshold_is_answered(self):
         self.assistant.threshold = 0.55
         self.assertNotIn("not sure", self.ask("hello", "greeting", confidence=0.55).text)
         self.assertIn("not sure", self.ask("hello", "greeting", confidence=0.549).text)
 
-    def test_inquiry_flow_creates_one_lead_after_confirmation(self):
-        reply = self.ask("i want a system built", "make_inquiry")
-        for answer in ("Juan", "juan@example.com", "An enrollment system for a school", "skip", "skip"):
-            reply = self.assistant.reply(answer, reply.state)
-            self.assertEqual(self.leads, [])
-        reply = self.assistant.reply("yes", reply.state)
-        self.assertTrue(reply.lead_created)
-        self.assertEqual(self.leads[0]["name"], "Juan")
-        self.assertNotIn("lead", reply.state)
+    def test_inquiries_go_to_the_owner_not_the_chat(self):
+        for text, intent in (("i want a system built", "make_inquiry"),
+                             ("how much is a system", "ask_pricing"),
+                             ("how long does it take", "ask_timeline"),
+                             ("how can i contact you", "ask_contact")):
+            reply = self.ask(text, intent)
+            self.assertLinksToMessageForm(reply)
+            self.assertNotIn("lead", reply.state)  # nothing is collected in the chat
+        self.assertIn("personally", self.ask("i want a system built", "make_inquiry").text)
 
-    def test_inquiries_are_capped_per_conversation(self):
-        reply = self.ask("i want a system built", "make_inquiry", {"leads_sent": 3})
+    def test_old_chat_state_from_the_in_chat_inquiry_is_dropped(self):
+        reply = self.ask("hello", "greeting", {"lead": {"step": "name", "data": {}}})
         self.assertNotIn("lead", reply.state)
-        self.assertIn("already", reply.text)
+        self.assertIn("Portfolio Assistant", reply.text)
 
     def test_untrained_server_degrades_gracefully(self):
         assistant = Assistant(None, KnowledgeBase([]), Owner(name="Lord"))
         reply = assistant.reply("hello")
         self.assertIn("hasn't been trained", reply.text)
-        self.assertEqual(reply.state["offer"], "lead")
+        self.assertIn({"label": "Send Lord a message", "url": "/contact/"}, reply.links)
 
     def test_empty_message(self):
         self.assertIn("Type a question", self.assistant.reply("   ").text)
